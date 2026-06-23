@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse enforcement: redirect native tools to skyline equivalents.
-# Fail-open (exit 0) when the daemon is not running — never breaks the agent.
+# Fail-open (exit 0) when the daemon is not running -- never breaks the agent.
 
 MODE="${1:-}"
 
@@ -12,10 +12,10 @@ fi
 
 case "$MODE" in
   read) printf "use skyline_read, not Read.\n"; exit 2 ;;
-  edit) printf "use skyline_edit/skyline_create, not Edit/Write.\n"; exit 2 ;;
+  edit) printf "use skyline_edit/skyline_create, not native Edit/Write/apply_patch.\n"; exit 2 ;;
   grep) printf "use skyline_grep/skyline_sgrep, not Grep.\n"; exit 2 ;;
   glob) printf "use skyline_find/skyline_tree, not Glob.\n"; exit 2 ;;
-  bash) printf "use skyline_grep/skyline_sgrep, skyline_find/skyline_tree, skyline_git, skyline_run, skyline_test, skyline_conflicts — not Bash.\n"; exit 2 ;;
+  bash) printf "use skyline_grep/skyline_sgrep, skyline_find/skyline_tree, skyline_git, skyline_run, skyline_test, skyline_conflicts -- not native Bash.\n"; exit 2 ;;
 esac
 
 exit 0
