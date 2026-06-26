@@ -1,0 +1,20 @@
+{
+  "name": "skybox-codex",
+  "version": "1.0.0",
+  "description": "Wires the skybox code-knowledge-graph MCP daemon into Codex: one HTTP MCP server (query/context/impact + indexing) and a PreToolUse hook that redirects `skybox` CLI subcommands to the richer MCP tools.",
+  "author": {
+    "name": "Skylence",
+    "url": "https://github.com/skylence-be"
+  },
+  "homepage": "https://github.com/skylence-be/multi-llm-marketplace",
+  "repository": "https://github.com/skylence-be/multi-llm-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "skylence",
+    "skybox",
+    "mcp",
+    "codex",
+    "code-graph"
+  ],
+  "mcpServers": "./.mcp.json"
+}

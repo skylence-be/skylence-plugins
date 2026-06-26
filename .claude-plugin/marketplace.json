@@ -16,6 +16,17 @@
         "ref": "main"
       },
       "homepage": "https://github.com/skylence-be/skylence-plugins"
+    },
+    {
+      "name": "skybox-claude",
+      "description": "Wires the skybox code-knowledge-graph MCP daemon into Claude Code (HTTP MCP on port 7070): query/context/impact/route_map plus the indexing tools for cross-repo code navigation, execution-flow tracing, and change-impact analysis. Read-only — complements native file tools, does not replace them.",
+      "source": {
+        "source": "git-subdir",
+        "url": "skylence-be/skylence-plugins",
+        "path": "plugins/skybox-claude",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/skylence-be/skylence-plugins"
     }
   ]
 }

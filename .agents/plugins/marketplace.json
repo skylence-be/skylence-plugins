@@ -27,6 +27,30 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Developer Tools"
+    },
+    {
+      "name": "skybox-codex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/skybox-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "skybox-antigravity",
+      "source": {
+        "source": "local",
+        "path": "./plugins/skybox-antigravity"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
     }
   ]
 }

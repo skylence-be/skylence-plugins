@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_ROOT=\"${CODEX_PLUGIN_ROOT:-}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skybox-enforce.js\" ]; then exit 0; fi; node \"$PLUGIN_ROOT/hooks/skybox-enforce.js\"",
+            "statusMessage": "Checking skybox..."
+          }
+        ]
+      },
+      {
+        "matcher": "skyline_run",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_ROOT=\"${CODEX_PLUGIN_ROOT:-}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skybox-enforce.js\" ]; then exit 0; fi; node \"$PLUGIN_ROOT/hooks/skybox-enforce.js\"",
+            "statusMessage": "Checking skybox..."
+          }
+        ]
+      }
+    ]
+  }
+}
