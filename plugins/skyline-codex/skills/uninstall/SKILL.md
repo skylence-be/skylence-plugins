@@ -22,7 +22,7 @@ else
 
   # 3. Remove agent plugins. Codex requires the marketplace-qualified name.
   claude plugin uninstall skyline-claude --scope user 2>/dev/null || claude plugin uninstall skyline-claude 2>/dev/null || true
-  codex plugin remove skyline-codex@multi-llm-marketplace 2>/dev/null || codex plugin remove skyline-codex --marketplace multi-llm-marketplace 2>/dev/null || true
+  codex plugin remove skyline-codex@skylence-plugins 2>/dev/null || codex plugin remove skyline-codex --marketplace skylence-plugins 2>/dev/null || true
 
   # 4. Remove the globally installed package with whichever supported package manager owns it.
   npm uninstall -g @skylence-ai/skyline 2>/dev/null || true
