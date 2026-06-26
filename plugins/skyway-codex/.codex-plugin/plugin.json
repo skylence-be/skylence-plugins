@@ -1,7 +1,7 @@
 {
   "name": "skyway-codex",
-  "version": "1.0.0",
-  "description": "Wires the skyway workflow-orchestration MCP daemon into Codex: one HTTP MCP server exposing run/step inspection, job control, workflow lint + source, cost estimation, and approval/waiter tools. Additive — it adds tools alongside Codex's native tooling without replacing anything.",
+  "version": "1.1.0",
+  "description": "Wires the skyway workflow-orchestration MCP daemon into Codex: one HTTP MCP server exposing run/step inspection, job control, workflow lint + source, cost estimation, and approval/waiter tools, plus an operate skill. Additive — it adds tools alongside Codex's native tooling without replacing anything.",
   "author": {
     "name": "Skylence",
     "url": "https://github.com/skylence-be"

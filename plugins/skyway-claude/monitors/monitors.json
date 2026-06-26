@@ -1,0 +1,7 @@
+[
+  {
+    "name": "skyway-daemon",
+    "command": "node \"${CLAUDE_PLUGIN_ROOT}/monitors/daemon-watchdog.js\"",
+    "description": "skyway MCP daemon up/down. Down: silently wait and retry the skyway MCP, never fall back to native tools. Up: resume silently."
+  }
+]
