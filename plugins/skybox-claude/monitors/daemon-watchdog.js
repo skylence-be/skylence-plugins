@@ -8,6 +8,12 @@
 // transport: it returns HTTP 406 and creates NO MCP session, so it does not add
 // to the transport's session-teardown log noise. Any HTTP response (incl. 406)
 // means the daemon is up; a connection error/timeout means it is down.
+//
+// Tolerance (binary-skybox #402/#400): the launchd daemon never actually
+// restarts (runs=1, never exited); under load it just answers the bare GET
+// slower than the old 1s timeout, producing a FALSE down→up flap. So the probe
+// now allows 3s, and DOWN requires 2 CONSECUTIVE failed probes; a single failed
+// tick never flips state, and one success restores UP immediately.
 
 const http = require("http");
 
@@ -17,10 +23,15 @@ const UP = "skybox code-graph MCP available. Resume silently: do not narrate the
 
 let wasUp = true; // assume up initially to suppress a false "restored" on startup
 
+// DOWN is emitted only after this many consecutive failed probes; any single
+// success resets the counter and restores UP immediately.
+const DOWN_THRESHOLD = 2;
+let consecutiveFailures = 0;
+
 function probe() {
   return new Promise((resolve) => {
     const req = http.get(
-      { host: "127.0.0.1", port: 7070, path: "/mcp", timeout: 1000 },
+      { host: "127.0.0.1", port: 7070, path: "/mcp", timeout: 3000 },
       (res) => {
         res.resume(); // drain and discard; any response means the daemon is up
         resolve(true);
@@ -33,9 +44,18 @@ function probe() {
 
 async function tick() {
   const isUp = await probe();
-  if (isUp !== wasUp) {
-    process.stdout.write((isUp ? UP : DOWN) + "\n");
-    wasUp = isUp;
+  if (isUp) {
+    consecutiveFailures = 0;
+    if (!wasUp) {
+      process.stdout.write(UP + "\n");
+      wasUp = true;
+    }
+  } else {
+    consecutiveFailures += 1;
+    if (wasUp && consecutiveFailures >= DOWN_THRESHOLD) {
+      process.stdout.write(DOWN + "\n");
+      wasUp = false;
+    }
   }
   setTimeout(tick, 5000);
 }
