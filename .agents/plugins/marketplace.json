@@ -51,6 +51,30 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Developer Tools"
+    },
+    {
+      "name": "skyway-codex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/skyway-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "skyway-antigravity",
+      "source": {
+        "source": "local",
+        "path": "./plugins/skyway-antigravity"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
     }
   ]
 }
