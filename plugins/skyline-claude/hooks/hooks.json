@@ -55,6 +55,17 @@
             "statusMessage": "Checking skyline..."
           }
         ]
+      },
+      {
+        "matcher": "skyline_grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/skyline-nudge.js"],
+            "statusMessage": "Checking skyline..."
+          }
+        ]
       }
     ]
   }
