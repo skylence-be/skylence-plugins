@@ -27,6 +27,17 @@
         "ref": "main"
       },
       "homepage": "https://github.com/skylence-be/skylence-plugins"
+    },
+    {
+      "name": "skyway-claude",
+      "description": "Wires the skyway workflow-orchestration MCP daemon into Claude Code (HTTP MCP on port 3090): run/step inspection, job control, workflow lint + source, cost estimation, and approval/waiter tools for authoring and operating .sky workflows. Additive — complements native tools, does not replace them.",
+      "source": {
+        "source": "git-subdir",
+        "url": "skylence-be/skylence-plugins",
+        "path": "plugins/skyway-claude",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/skylence-be/skylence-plugins"
     }
   ]
 }
