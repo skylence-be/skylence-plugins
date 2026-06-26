@@ -12,7 +12,7 @@
         ]
       },
       {
-        "matcher": "skyline_run",
+        "matcher": "mcp__.*__skyline_run$",
         "hooks": [
           {
             "type": "command",

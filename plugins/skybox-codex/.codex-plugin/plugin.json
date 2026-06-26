@@ -1,6 +1,6 @@
 {
   "name": "skybox-codex",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Wires the skybox code-knowledge-graph MCP daemon into Codex: one HTTP MCP server (query/context/impact + indexing) and a PreToolUse hook that redirects `skybox` CLI subcommands to the richer MCP tools.",
   "author": {
     "name": "Skylence",

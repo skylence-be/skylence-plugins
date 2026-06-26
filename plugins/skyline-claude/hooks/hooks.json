@@ -57,7 +57,7 @@
         ]
       },
       {
-        "matcher": "skyline_grep",
+        "matcher": "mcp__.*__skyline_grep$",
         "hooks": [
           {
             "type": "command",
