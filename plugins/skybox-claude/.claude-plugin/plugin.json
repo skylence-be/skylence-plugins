@@ -1,6 +1,6 @@
 {
   "name": "skybox-claude",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Wires the skybox code-knowledge-graph MCP daemon into Claude Code: one HTTP MCP server exposing query/context/impact/route_map plus the indexing tools, a daemon watchdog monitor that alerts on a skybox up/down state change, and a PreToolUse hook that redirects `skybox` CLI subcommands (index/query/search/status/list/affected) to the richer MCP tools. For navigating, tracing execution flows, and analyzing change impact across indexed repos. Read-only — complements, does not replace, native file tools.",
   "author": {
     "name": "Skylence",

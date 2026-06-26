@@ -2,6 +2,6 @@
   {
     "name": "skybox-daemon",
     "command": "node \"${CLAUDE_PLUGIN_ROOT}/monitors/daemon-watchdog.js\"",
-    "description": "Alerts the agent only on a skybox MCP daemon up/down state change. On down: do not narrate, wait and retry skybox, never fall back to grep-guessing code structure. On recovery: resume silently with no narration."
+    "description": "skybox MCP daemon up/down. Down: silently wait and retry skybox, never grep-guess code structure. Up: resume silently."
   }
 ]

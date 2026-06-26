@@ -2,11 +2,11 @@
   {
     "name": "skyline-daemon",
     "command": "node \"${CLAUDE_PLUGIN_ROOT}/monitors/daemon-watchdog.js\"",
-    "description": "Alerts Claude only on a daemon up/down state change. On down: do not narrate, wait and retry skyline, never fall back to native tools. On recovery: resume silently with no narration."
+    "description": "skyline MCP daemon up/down. Down: silently wait and retry skyline, never fall back to native tools. Up: resume silently."
   },
   {
     "name": "skyline-friction-nudge",
     "command": "node \"${CLAUDE_PLUGIN_ROOT}/monitors/friction-nudge.js\"",
-    "description": "Debounced friction reporter (tracks skyline#6). After the agent goes idle on skyline tools, surfaces new devlog friction (stale-tag rejections, guide-gate blocks, fallbacks) ONCE so it can be filed via skyline_report_issue after searching open/closed issues. Inert until the audit/devlog observability streams are enabled."
+    "description": "New skyline devlog friction (stale-tag/guide-gate/fallback) — file via skyline_report_issue after searching open+closed issues. Inert until observability streams are enabled."
   }
 ]
