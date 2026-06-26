@@ -1,7 +1,7 @@
 {
   "name": "skyway-claude",
-  "version": "1.0.0",
-  "description": "Wires the skyway workflow-orchestration MCP into Claude Code: one HTTP MCP server exposing run/step inspection, job control, workflow lint + source, cost estimation, and approval/waiter tools for authoring and operating .sky workflows. Additive — complements native Read/Edit/Write/Grep/Bash tools, does not replace them.",
+  "version": "1.1.0",
+  "description": "Wires the skyway workflow-orchestration MCP into Claude Code: one HTTP MCP server exposing run/step inspection, job control, workflow lint + source, cost estimation, and approval/waiter tools for authoring and operating .sky workflows. Bundles a daemon watchdog monitor (alerts when the :3090 daemon goes down), a /skyway-status command, and an operate skill. Additive — complements native Read/Edit/Write/Grep/Bash tools, does not replace them.",
   "author": {
     "name": "Skylence",
     "url": "https://github.com/skylence-be"
