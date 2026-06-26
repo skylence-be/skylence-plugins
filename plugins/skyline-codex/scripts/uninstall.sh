@@ -21,7 +21,7 @@ if command -v claude >/dev/null 2>&1; then
   claude plugin uninstall skyline-claude --scope user 2>/dev/null || claude plugin uninstall skyline-claude 2>/dev/null || true
 fi
 if command -v codex >/dev/null 2>&1; then
-  codex plugin remove skyline-codex@multi-llm-marketplace 2>/dev/null || codex plugin remove skyline-codex --marketplace multi-llm-marketplace 2>/dev/null || true
+  codex plugin remove skyline-codex@skylence-plugins 2>/dev/null || codex plugin remove skyline-codex --marketplace skylence-plugins 2>/dev/null || true
 fi
 
 # Remove the global package for the package managers we support. These are best effort:
