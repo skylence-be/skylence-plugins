@@ -75,6 +75,30 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Developer Tools"
+    },
+    {
+      "name": "skycastle-codex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/skycastle-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "skycastle-antigravity",
+      "source": {
+        "source": "local",
+        "path": "./plugins/skycastle-antigravity"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
     }
   ]
 }
