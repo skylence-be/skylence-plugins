@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/skycastle-enforce.js"],
+            "statusMessage": "Checking skycastle..."
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*__skyline_run$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/skycastle-enforce.js"],
+            "statusMessage": "Checking skycastle..."
+          }
+        ]
+      }
+    ]
+  }
+}
