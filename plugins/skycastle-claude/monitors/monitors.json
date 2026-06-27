@@ -1,0 +1,7 @@
+[
+  {
+    "name": "skycastle-daemon",
+    "command": "node \"${CLAUDE_PLUGIN_ROOT}/monitors/daemon-watchdog.js\"",
+    "description": "skycastle MCP daemon up/down. Down: silently wait and retry the skycastle MCP tool, do NOT fall back to the native CLI. If stuck: launchctl kickstart -k gui/$(id -u)/be.skylence.skycastle.mcp. Up: resume silently."
+  }
+]

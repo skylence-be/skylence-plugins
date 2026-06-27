@@ -1,0 +1,19 @@
+{
+  "name": "skycastle-claude",
+  "version": "1.0.0",
+  "description": "Wires the skycastle secrets-manager MCP daemon into Claude Code: one HTTP MCP server on port 8210 exposing secret CRUD (get/set/list/delete, versions, tags), KMS, certificates, SSH, secret-scanning, PAM, AI, and token tools. Bundles a daemon watchdog monitor that alerts on up/down state change, a PreToolUse hook that redirects `skycastle secrets`/`export` CLI subcommands to the richer MCP tools, a /skycastle-status command, and an operate skill. Additive — complements native tools, does not replace them.",
+  "author": {
+    "name": "Skylence",
+    "url": "https://github.com/skylence-be"
+  },
+  "homepage": "https://github.com/skylence-be/skylence-plugins",
+  "repository": "https://github.com/skylence-be/skylence-plugins",
+  "license": "MIT",
+  "keywords": [
+    "skylence",
+    "skycastle",
+    "mcp",
+    "claude-code",
+    "secrets"
+  ]
+}

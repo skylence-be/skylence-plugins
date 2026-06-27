@@ -38,6 +38,39 @@
         "ref": "main"
       },
       "homepage": "https://github.com/skylence-be/skylence-plugins"
+    },
+    {
+      "name": "skycastle-claude",
+      "description": "Wires the skycastle secrets-manager MCP daemon into Claude Code (HTTP MCP on port 8210): secret CRUD (get/set/list/delete, versions, tags), KMS, certificates, SSH, secret-scanning, PAM, AI, and token tools. Bundles a daemon watchdog monitor, a PreToolUse hook redirecting `skycastle secrets`/`export` CLI subcommands to the MCP tools, a /skycastle-status command, and an operate skill. Additive — complements native tools, does not replace them.",
+      "source": {
+        "source": "git-subdir",
+        "url": "skylence-be/skylence-plugins",
+        "path": "plugins/skycastle-claude",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/skylence-be/skylence-plugins"
+    },
+    {
+      "name": "skycastle-codex",
+      "description": "Wires the skycastle secrets-manager MCP daemon into Codex (HTTP MCP on port 8210): secret CRUD, KMS, certificates, SSH, secret-scanning, PAM, AI, and token tools, plus operate/upgrade/uninstall skills. Additive — adds tools alongside Codex's native tooling without replacing anything.",
+      "source": {
+        "source": "git-subdir",
+        "url": "skylence-be/skylence-plugins",
+        "path": "plugins/skycastle-codex",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/skylence-be/skylence-plugins"
+    },
+    {
+      "name": "skycastle-antigravity",
+      "description": "Wires the skycastle secrets-manager MCP daemon into Google Antigravity (HTTP MCP on port 8210): secret CRUD, KMS, certificates, SSH, secret-scanning, PAM, AI, and token tools, plus operate/upgrade/uninstall skills. Additive — augments native tools, does not replace them.",
+      "source": {
+        "source": "git-subdir",
+        "url": "skylence-be/skylence-plugins",
+        "path": "plugins/skycastle-antigravity",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/skylence-be/skylence-plugins"
     }
   ]
 }
