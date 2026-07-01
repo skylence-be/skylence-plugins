@@ -6,7 +6,11 @@ skyway update -y
 
 # 2. Restart the daemon so it runs the freshly installed binary.
 #    skyway is config-driven (daemon listens on 127.0.0.1:3090); no --port flag.
-skyway daemon restart 2>/dev/null || skyway serve &
+#    (`|| skyway serve &` would background the whole list and orphan a
+#    foreground server; register the autostart service instead.)
+if ! skyway daemon restart 2>/dev/null; then
+  skyway service install
+fi
 
 echo ""
 echo "skyway binary updated and daemon restarted."

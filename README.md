@@ -58,22 +58,39 @@ available in a fresh Claude Code session.
 ## Included plugins
 
 - `skyline-claude`: plugin-local HTTP MCP config, PreToolUse enforcement,
-  daemon watchdog monitor, and `upgrade` / `uninstall` commands.
-- `skyline-codex`: plugin-local HTTP MCP config, SessionStart steering skill,
-  PreToolUse enforcement hooks, and `upgrade` / `uninstall` skills.
-- `skyline-antigravity`: Antigravity-side MCP config, hooks, and skills for
-  Skyline daemon integration.
+  daemon watchdog + friction-nudge monitors, and `upgrade` / `uninstall`
+  commands.
+- `skyline-codex`: plugin-local HTTP MCP config, PreToolUse enforcement hooks,
+  and `upgrade` / `uninstall` skills.
+- `skyline-antigravity`: Antigravity-side MCP config, `run_command`/file-tool
+  enforcement hooks, and `upgrade` / `uninstall` skills.
 - `skybox-claude`: plugin-local HTTP MCP config wiring the skybox
   code-knowledge-graph daemon (port 7070), a daemon watchdog monitor, a CLI→MCP
-  enforcement hook (steers `skybox` CLI subcommands to the MCP tools), and
-  `upgrade` / `uninstall` commands. No native-file-tool enforcement (it does not
-  replace Read/Edit/Write).
+  enforcement hook (steers `skybox` CLI subcommands to the MCP tools), an
+  `operate` skill, and `upgrade` / `uninstall` commands. No native-file-tool
+  enforcement (it does not replace Read/Edit/Write).
 - `skybox-codex`: Codex sibling of `skybox-claude` — plugin-local HTTP MCP
-  config (port 7070), the same CLI→MCP enforcement hook, and `upgrade` /
-  `uninstall` skills. No daemon watchdog (Codex has no monitor system).
+  config (port 7070), the same CLI→MCP enforcement hook, an `operate` skill,
+  and `upgrade` / `uninstall` skills. No daemon watchdog (Codex has no monitor
+  system).
 - `skybox-antigravity`: Google Antigravity sibling — `mcp_config.json` MCP
   wiring (port 7070), a `run_command` CLI→MCP enforcement hook (STDIN/STDOUT
-  decision contract), and `upgrade` / `uninstall` skills.
+  decision contract), an `operate` skill, and `upgrade` / `uninstall` skills.
+- `skyway-claude`: plugin-local HTTP MCP config wiring the skyway
+  workflow-orchestration daemon (port 3090), a daemon watchdog monitor, a
+  `/skyway-status` command, an `operate` skill, and `upgrade` / `uninstall`
+  commands. Additive — no enforcement.
+- `skyway-codex` / `skyway-antigravity`: siblings with the same MCP wiring
+  (port 3090) plus `operate`, `upgrade`, and `uninstall` skills.
+- `skycastle-claude`: plugin-local HTTP MCP config wiring the skycastle
+  secrets-manager MCP daemon (port 8210), a daemon watchdog monitor, a CLI→MCP
+  enforcement hook (steers `skycastle secrets`/`export` to the MCP tools), a
+  `/skycastle-status` command, an `operate` skill, and `upgrade` / `uninstall`
+  commands.
+- `skycastle-codex`: Codex sibling — the same MCP wiring (port 8210) and
+  CLI→MCP enforcement hook, plus `operate` / `upgrade` / `uninstall` skills.
+- `skycastle-antigravity`: Antigravity sibling — `mcp_config.json` MCP wiring
+  (port 8210) plus `operate` / `upgrade` / `uninstall` skills.
 
 ## Verify
 

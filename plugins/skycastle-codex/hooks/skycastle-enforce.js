@@ -97,7 +97,7 @@ function block(sub) {
     "`, use " +
     (MAP[sub] || "the equivalent skycastle MCP tool") +
     ". If the skycastle MCP tools are not loaded, run " +
-    'ToolSearch("select:mcp__plugin_skycastle-claude_skycastle__secret_get,mcp__plugin_skycastle-claude_skycastle__secret_set,mcp__plugin_skycastle-claude_skycastle__secret_list,mcp__plugin_skycastle-claude_skycastle__secret_delete") ' +
+    'ToolSearch("select:mcp__skycastle__secret_get,mcp__skycastle__secret_set,mcp__skycastle__secret_list,mcp__skycastle__secret_delete") ' +
     "then retry via the MCP tool.";
   process.stderr.write(msg + "\n");
   process.exit(2);

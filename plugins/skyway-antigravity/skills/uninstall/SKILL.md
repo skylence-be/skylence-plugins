@@ -1,5 +1,5 @@
 ---
-name: uninstall-skill
+name: skyway-uninstall
 description: Uninstall the skyway-antigravity plugin — removes the skyway MCP wiring from the host. Leaves the skyway daemon, binary, and data intact (manage those with `skyway` directly). Use when the user wants to remove the skyway plugin.
 ---
 

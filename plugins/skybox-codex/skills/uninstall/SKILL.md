@@ -1,5 +1,5 @@
 ---
-name: uninstall-skill
+name: skybox-uninstall
 description: Remove skybox MCP wiring, stop the launchd daemons, and remove the plugin (keeps the binary and per-repo indexes). Use when the user wants to remove skybox.
 ---
 

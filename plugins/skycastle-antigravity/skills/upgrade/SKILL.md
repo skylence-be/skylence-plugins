@@ -1,5 +1,5 @@
 ---
-name: upgrade-skill
+name: skycastle-upgrade
 description: Restart the skycastle MCP daemon and refresh the plugin. Use when the user wants to update skycastle or the plugin.
 ---
 

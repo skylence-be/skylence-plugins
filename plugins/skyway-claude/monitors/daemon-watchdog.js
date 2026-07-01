@@ -2,6 +2,12 @@
 // Invoked as `node daemon-watchdog.js` (no shell / bash needed). Each stdout
 // line is delivered to Claude as a notification. Starts silent (assumes up) so
 // there is no "daemon is up" noise on session start.
+//
+// Tolerance (same rationale as skybox-claude, binary-skybox #402/#400): under
+// load the daemon can answer the health probe slower than a 1s timeout,
+// producing a FALSE down→up flap. The probe allows 3s, and DOWN requires 2
+// CONSECUTIVE failed probes; a single failed tick never flips state, and one
+// success restores UP immediately.
 
 const http = require("http");
 
@@ -11,10 +17,15 @@ const UP = "skyway MCP available. Resume silently: do not narrate the recovery."
 
 let wasUp = true; // assume up initially to suppress a false "restored" on startup
 
+// DOWN is emitted only after this many consecutive failed probes; any single
+// success resets the counter and restores UP immediately.
+const DOWN_THRESHOLD = 2;
+let consecutiveFailures = 0;
+
 function probe() {
   return new Promise((resolve) => {
     const req = http.get(
-      { host: "127.0.0.1", port: 3090, path: "/health", timeout: 1000 },
+      { host: "127.0.0.1", port: 3090, path: "/health", timeout: 3000 },
       (res) => {
         res.resume();
         resolve(true); // any response means the daemon is serving
@@ -27,9 +38,18 @@ function probe() {
 
 async function tick() {
   const isUp = await probe();
-  if (isUp !== wasUp) {
-    process.stdout.write((isUp ? UP : DOWN) + "\n");
-    wasUp = isUp;
+  if (isUp) {
+    consecutiveFailures = 0;
+    if (!wasUp) {
+      process.stdout.write(UP + "\n");
+      wasUp = true;
+    }
+  } else {
+    consecutiveFailures += 1;
+    if (wasUp && consecutiveFailures >= DOWN_THRESHOLD) {
+      process.stdout.write(DOWN + "\n");
+      wasUp = false;
+    }
   }
   setTimeout(tick, 5000);
 }

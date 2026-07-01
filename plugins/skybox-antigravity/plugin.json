@@ -1,7 +1,7 @@
 {
   "name": "skybox-antigravity",
-  "version": "1.0.0",
-  "description": "Wires the skybox code-knowledge-graph MCP daemon into Google Antigravity: one HTTP MCP server (query/context/impact + indexing) and a PreToolUse hook that redirects `skybox` CLI subcommands run in the shell to the richer MCP tools.",
+  "version": "1.1.0",
+  "description": "Wires the skybox code-knowledge-graph MCP daemon into Google Antigravity: one HTTP MCP server (query/context/impact + indexing), a PreToolUse hook that redirects `skybox` CLI subcommands run in the shell to the richer MCP tools, and an operate skill.",
   "author": {
     "name": "Skylence",
     "url": "https://github.com/skylence-be"

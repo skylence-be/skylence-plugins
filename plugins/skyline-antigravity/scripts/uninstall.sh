@@ -14,7 +14,7 @@ if command -v skyline >/dev/null 2>&1; then
 fi
 
 # End stale Claude plugin watchdogs before plugin cache removal.
-pgrep -f '/skyline-claude/.*/monitors/daemon-watchdog.sh' 2>/dev/null | while read -r pid; do kill "$pid" 2>/dev/null || true; done
+pgrep -f '/skyline-claude/.*/monitors/' 2>/dev/null | while read -r pid; do kill "$pid" 2>/dev/null || true; done
 
 # Remove the Antigravity plugin via the agy CLI.
 if command -v agy >/dev/null 2>&1; then

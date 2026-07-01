@@ -1,5 +1,5 @@
 ---
-name: uninstall-skill
+name: skyline-uninstall
 description: Fully uninstall skyline — removes MCP wiring, hooks, instructions, daemon autostart, installed plugins, helper processes, dispatchers, and the global skyline package. Use when the user wants to remove skyline.
 ---
 
@@ -18,7 +18,7 @@ else
   fi
 
   # 2. End stale Claude plugin watchdogs before removing the plugin cache.
-  pgrep -f '/skyline-claude/.*/monitors/daemon-watchdog.sh' 2>/dev/null | while read -r pid; do kill "$pid" 2>/dev/null || true; done
+  pgrep -f '/skyline-claude/.*/monitors/' 2>/dev/null | while read -r pid; do kill "$pid" 2>/dev/null || true; done
 
   # 3. Remove agent plugins. Codex requires the marketplace-qualified name.
   claude plugin uninstall skyline-claude --scope user 2>/dev/null || claude plugin uninstall skyline-claude 2>/dev/null || true
