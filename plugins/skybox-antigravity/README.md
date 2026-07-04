@@ -26,7 +26,8 @@ plugins it ships **no native-file-tool enforcement** (no `view_file` /
 - **Fails open:** if the daemon is unreachable (or `curl` is missing), the hook
   returns `{"decision":"allow"}` — the skybox CLI works without the MCP daemon,
   so blocking it then would strand the agent.
-- Ships `upgrade` and `uninstall` skills that drive the skybox daemon lifecycle.
+- Ships an `operate` skill (graph navigation playbook) plus `upgrade` and
+  `uninstall` skills that drive the skybox daemon lifecycle.
 
 ## The daemon dependency
 
@@ -51,6 +52,7 @@ plugins/skybox-antigravity/
 ├── scripts/
 │   └── uninstall.sh         # bundled uninstall flow
 ├── skills/
+│   ├── operate/SKILL.md
 │   ├── upgrade/SKILL.md
 │   └── uninstall/SKILL.md
 └── README.md

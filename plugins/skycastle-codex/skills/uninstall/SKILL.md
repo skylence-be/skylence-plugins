@@ -1,5 +1,5 @@
 ---
-name: uninstall-skill
+name: skycastle-uninstall
 description: Uninstall the skycastle-codex plugin — removes the skycastle MCP wiring from the host. Leaves the skycastle daemon, binary, and vault data intact (manage those with `skycastle` directly). Use when the user wants to remove the skycastle plugin.
 ---
 

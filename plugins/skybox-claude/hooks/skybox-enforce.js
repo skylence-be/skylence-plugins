@@ -109,7 +109,7 @@ function block(sub) {
     "`, use " +
     (MAP[sub] || "the equivalent skybox MCP tool") +
     ". If the skybox MCP tools are not loaded, run " +
-    'ToolSearch("select:mcp__skybox__index_repo,mcp__skybox__wait_for_job,mcp__skybox__query,mcp__skybox__list_repos,mcp__skybox__repo_status,mcp__skybox__impact,mcp__skybox__detect_changes") ' +
+    'ToolSearch("select:mcp__plugin_skybox-claude_skybox__index_repo,mcp__plugin_skybox-claude_skybox__wait_for_job,mcp__plugin_skybox-claude_skybox__query,mcp__plugin_skybox-claude_skybox__list_repos,mcp__plugin_skybox-claude_skybox__repo_status,mcp__plugin_skybox-claude_skybox__impact,mcp__plugin_skybox-claude_skybox__detect_changes") ' +
     "then retry via the MCP tool.";
   process.stderr.write(msg + "\n");
   process.exit(2);

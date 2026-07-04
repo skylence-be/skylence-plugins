@@ -1,5 +1,5 @@
 ---
-name: upgrade-skill
+name: skybox-upgrade
 description: Restart the skybox MCP daemon on the latest binary and refresh the plugin. Use when the user wants to update or upgrade skybox.
 ---
 

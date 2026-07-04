@@ -15,8 +15,8 @@ plugin format.
   skycastle MCP daemon (`http://127.0.0.1:8210/mcp`). The vault server runs on
   :8200 (can be sealed); the MCP proxy runs on :8210 and is managed by the
   `be.skylence.skycastle.mcp` launchd agent.
-- Ships `upgrade` and `uninstall` skills that drive the skycastle daemon
-  lifecycle.
+- Ships an `operate` skill (secrets/vault playbook) plus `upgrade` and
+  `uninstall` skills that drive the skycastle daemon lifecycle.
 
 ## Additive, not enforcing
 

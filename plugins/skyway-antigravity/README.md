@@ -16,8 +16,8 @@ plugin format.
   tools: run output tail/search, step inspection, job control, the
   waiter/approval flow, run recording, workflow lint + source, lock, whoami,
   and `estimate_workflow_cost`.
-- Ships `upgrade` and `uninstall` skills that drive the skyway binary/daemon
-  lifecycle.
+- Ships an `operate` skill (workflow run/debug playbook) plus `upgrade` and
+  `uninstall` skills that drive the skyway binary/daemon lifecycle.
 
 ## Additive, not enforcing
 
@@ -67,6 +67,7 @@ plugins/skyway-antigravity/
 ├── scripts/
 │   └── uninstall.sh         # bundled full-uninstall flow
 ├── skills/
+│   ├── operate/SKILL.md
 │   ├── upgrade/SKILL.md
 │   └── uninstall/SKILL.md
 └── README.md

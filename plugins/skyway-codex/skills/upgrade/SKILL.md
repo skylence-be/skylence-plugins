@@ -1,5 +1,5 @@
 ---
-name: upgrade-skill
+name: skyway-upgrade
 description: Update/upgrade skyway — installs the latest binary, restarts the daemon, and refreshes the plugin. Use when the user wants to update or upgrade skyway.
 ---
 
