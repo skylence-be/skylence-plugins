@@ -1,4 +1,4 @@
-// Tails ~/.cache/skylence/jobs/events.ndjson and emits ONE notification line
+// Tails <skyline-data-dir>/jobs/events.ndjson and emits ONE notification line
 // per NEW terminal job event (exited/lost). Invoked as `node jobs-monitor.js`,
 // no shell needed. Each stdout line is delivered to Claude as a notification
 // by the monitor harness (same channel as the now-removed daemon-watchdog.js —
@@ -7,6 +7,14 @@
 // This monitor is NOT redundant the same way — a background job's terminal
 // state has no other channel back to the session — so it is built anyway,
 // tracked in skylence-be/skyline#20).
+//
+// DATA DIR: mirrors skyline_data_dir() exactly (same resolution as
+// friction-nudge.js used before its removal in #9) — SKYLINE_DATA_DIR env
+// override first, else the platform cache dir (macOS:
+// ~/Library/Caches/skyline, Windows: %LOCALAPPDATA%/skyline, else
+// $XDG_CACHE_HOME or ~/.cache/skyline) — jobs live under
+// "<that dir>/jobs/events.ndjson". SKYLENCE_JOBS_DIR overrides the jobs dir
+// directly (test/dev convenience), on top of the skyline_data_dir default.
 //
 // SCHEMA (produced by the skyline daemon's job runner): one JSON object per
 // line in events.ndjson:
@@ -33,8 +41,19 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const JOBS_DIR =
-  process.env.SKYLENCE_JOBS_DIR || path.join(os.homedir(), ".cache", "skylence", "jobs");
+function defaultDataDir() {
+  const home = os.homedir();
+  if (process.platform === "darwin") {
+    return path.join(home, "Library", "Caches", "skyline");
+  }
+  if (process.platform === "win32") {
+    return path.join(process.env.LOCALAPPDATA || path.join(home, "AppData", "Local"), "skyline");
+  }
+  return path.join(process.env.XDG_CACHE_HOME || path.join(home, ".cache"), "skyline");
+}
+
+const SKYLINE_DATA_DIR = process.env.SKYLINE_DATA_DIR || defaultDataDir();
+const JOBS_DIR = process.env.SKYLENCE_JOBS_DIR || path.join(SKYLINE_DATA_DIR, "jobs");
 const EVENTS_FILE = path.join(JOBS_DIR, "events.ndjson");
 const OFFSET_FILE = path.join(JOBS_DIR, ".monitor-offset");
 const POLL_MS = parseInt(process.env.SKYLINE_JOBS_POLL_MS || "3000", 10) || 3000;

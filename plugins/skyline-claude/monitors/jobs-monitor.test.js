@@ -7,6 +7,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { execFileSync } = require("child_process");
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "jobs-monitor-test-"));
 process.env.SKYLENCE_JOBS_DIR = TMP;
@@ -15,6 +16,31 @@ const monitor = require("./jobs-monitor.js");
 
 const EVENTS_FILE = path.join(TMP, "events.ndjson");
 const OFFSET_FILE = path.join(TMP, ".monitor-offset");
+
+// --- 0. default path resolution mirrors skyline_data_dir() ----------------
+// (SKYLINE_DATA_DIR override, jobs live under "<that dir>/jobs/events.ndjson")
+// Exercised in a fresh child process since JOBS_DIR is computed once at
+// require time in the module under test.
+const dataDirTmp = fs.mkdtempSync(path.join(os.tmpdir(), "jobs-monitor-datadir-test-"));
+fs.mkdirSync(path.join(dataDirTmp, "jobs"), { recursive: true });
+fs.writeFileSync(
+  path.join(dataDirTmp, "jobs", "events.ndjson"),
+  JSON.stringify({ ts: "2026-07-04T00:00:00Z", job_id: 99, queue: "datadir", argv0: "cmd", state: "lost", exit: null, raw: "/tmp/99.raw" }) + "\n"
+);
+const childOut = execFileSync(
+  process.execPath,
+  ["-e", "require('./jobs-monitor.js').tick();"],
+  {
+    cwd: __dirname,
+    env: { ...process.env, SKYLINE_DATA_DIR: dataDirTmp, SKYLENCE_JOBS_DIR: "" },
+    encoding: "utf8",
+  }
+);
+assert(
+  childOut === "skyline job 99 (queue=datadir) LOST — raw: /tmp/99.raw\n",
+  `default resolution reads <SKYLINE_DATA_DIR>/jobs/events.ndjson (got ${JSON.stringify(childOut)})`
+);
+fs.rmSync(dataDirTmp, { recursive: true, force: true });
 
 let failures = 0;
 function assert(cond, msg) {
