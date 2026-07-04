@@ -1,7 +1,0 @@
-[
-  {
-    "name": "skybox-daemon",
-    "command": "node \"${CLAUDE_PLUGIN_ROOT}/monitors/daemon-watchdog.js\"",
-    "description": "skybox MCP daemon up/down. Down: silently wait and retry skybox, never grep-guess code structure. Up: resume silently."
-  }
-]
