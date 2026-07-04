@@ -1,0 +1,7 @@
+[
+  {
+    "name": "skyline-jobs-monitor",
+    "command": "node \"${CLAUDE_PLUGIN_ROOT}/monitors/jobs-monitor.js\"",
+    "description": "Tails ~/.cache/skylence/jobs/events.ndjson and emits one notification per new job termination (exited/lost). Offset-tracked across restarts; singleton per machine."
+  }
+]
