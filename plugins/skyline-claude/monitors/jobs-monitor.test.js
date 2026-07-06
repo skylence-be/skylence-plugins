@@ -75,19 +75,21 @@ function append(text) {
 withCapturedStdout(() => monitor.tick());
 assert(true, "tick() on a missing events file does not throw");
 
-// --- 2. two complete valid lines emit two notifications -------------------
+// --- 2. exit-0 is suppressed; unknown-exit and lost still notify ----------
 const exited = { ts: "2026-07-04T00:00:00Z", job_id: 1, queue: "default", argv0: "cmd", state: "exited", exit: 0, raw: "/tmp/1.raw" };
 const lost = { ts: "2026-07-04T00:00:01Z", job_id: 2, queue: "default", argv0: "cmd", state: "lost", exit: null, raw: "/tmp/2.raw" };
+const exitedUnknown = { ts: "2026-07-04T00:00:02Z", job_id: 5, queue: "default", argv0: "cmd", state: "exited", exit: null, raw: "/tmp/5.raw" };
 append(JSON.stringify(exited) + "\n");
 append(JSON.stringify(lost) + "\n");
+append(JSON.stringify(exitedUnknown) + "\n");
 
 let out = withCapturedStdout(() => monitor.tick());
-assert(out.length === 2, `two complete lines emit two notifications (got ${out.length})`);
-assert(out[0] === "skyline job 1 (queue=default) exited 0 — raw: /tmp/1.raw\n", `exited line formatted correctly (got ${JSON.stringify(out[0])})`);
-assert(out[1] === "skyline job 2 (queue=default) LOST — raw: /tmp/2.raw\n", `lost line formatted correctly (got ${JSON.stringify(out[1])})`);
+assert(out.length === 2, `exit-0 termination is suppressed; lost and unknown-exit emit (got ${out.length})`);
+assert(out[0] === "skyline job 2 (queue=default) LOST \u2014 raw: /tmp/2.raw\n", `lost line formatted correctly (got ${JSON.stringify(out[0])})`);
+assert(out[1] === "skyline job 5 (queue=default) exited \u2014 raw: /tmp/5.raw\n", `unknown-exit line formatted correctly (got ${JSON.stringify(out[1])})`);
 
 const offsetAfterFirstTick = monitor.readOffset();
-assert(offsetAfterFirstTick === fs.statSync(EVENTS_FILE).size, "offset advances to end of file after two complete lines");
+assert(offsetAfterFirstTick === fs.statSync(EVENTS_FILE).size, "offset advances to end of file after complete lines");
 
 // --- 3. simulated restart: re-reading offset from disk never replays ------
 out = withCapturedStdout(() => monitor.tick());

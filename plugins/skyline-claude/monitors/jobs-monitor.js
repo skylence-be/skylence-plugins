@@ -185,6 +185,7 @@ function tick() {
       continue; // malformed line: skip, do not crash
     }
     if (!isValidEvent(event)) continue;
+    if (event.state === "exited" && event.exit === 0) continue; // routine success: notify only failures, unknown exits, and lost jobs
     process.stdout.write(
       `skyline job ${event.job_id} (queue=${event.queue}) ${formatTerminalState(event)} — raw: ${event.raw}\n`
     );

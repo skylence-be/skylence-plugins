@@ -1,7 +1,7 @@
 {
   "name": "skyline-claude",
-  "version": "1.4.0",
-  "description": "Wires the skyline MCP daemon into Claude Code: one HTTP MCP server, a PreToolUse enforcement hook that hard-redirects Read/Edit/Write/Grep/Glob/Bash to skyline equivalents while the daemon is running, a PreToolUse nudge (#467) that steers identifier-like skyline_grep searches on code toward the exact semantic tools without blocking, and a jobs monitor that notifies on background job termination (exited/lost).",
+  "version": "1.4.1",
+  "description": "Wires the skyline MCP daemon into Claude Code: one HTTP MCP server, a PreToolUse enforcement hook that hard-redirects Read/Edit/Write/Grep/Glob/Bash to skyline equivalents while the daemon is running, a PreToolUse nudge (#467) that steers identifier-like skyline_grep searches on code toward the exact semantic tools without blocking, and a jobs monitor that notifies on failed, unknown-exit, or lost background jobs (routine exit-0 terminations are suppressed).",
   "author": {
     "name": "Skylence",
     "url": "https://github.com/skylence-be"
