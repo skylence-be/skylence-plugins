@@ -1,6 +1,6 @@
 {
   "name": "skyline-grok",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Wires the skyline MCP daemon into Grok: HTTP MCP server (port 7333) + PreToolUse enforcement that steers native Grok tools (read_file, search_replace, grep, list_dir, run_terminal_command) to skyline_* MCP tools when the daemon is running. Grok-native hooks and paths.",
   "author": {
     "name": "Skylence",

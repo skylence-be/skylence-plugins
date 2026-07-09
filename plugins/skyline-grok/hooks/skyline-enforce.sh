@@ -35,19 +35,19 @@ deny() {
   exit 0
 }
 
-# Fail open when we cannot confirm the daemon is up.
-# Treat *any* HTTP response (even 405/406) as "daemon is serving" → deny natives.
-# Use -4 (IPv4), explicit connect-timeout + max-time for reliability under load.
-if command -v curl >/dev/null 2>&1; then
-  if ! curl -4 --silent --connect-timeout 2 --max-time 3 \
-         -o /dev/null -I "http://127.0.0.1:7333/mcp" 2>/dev/null; then
-    allow
-  fi
-else
-  allow
-fi
+# The skyline-grok plugin is active (this hook is registered and loaded).
+# Enforce redirection to skyline_* MCP tools for matched native operations.
+#
+# We removed the previous reachability probe (curl check) because it was
+# unreliable when executed from inside the hook runner (different process
+# env, timing, network view, etc.). It frequently fell through to "allow"
+# even when the daemon was healthy and connected.
+#
+# Presence of this hook = enforce the switch. If the skyline MCP tools
+# are not actually available in the session, the model will surface errors
+# on skyline calls and can adjust.
 
-# Daemon is up: redirect to skyline tools.
+# Enforce for known modes.
 case "$MODE" in
   read) deny "skyline is active: use the skyline_read MCP tool instead of the native read_file tool." ;;
   edit) deny "skyline is active: use the skyline_edit / skyline_create MCP tools instead of the native search_replace (or Write/Edit) tools." ;;
