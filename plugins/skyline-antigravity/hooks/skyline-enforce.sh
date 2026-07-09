@@ -33,8 +33,13 @@ deny() {
 }
 
 # Fail open when we cannot confirm the daemon is up.
+# Treat *any* HTTP response (even 405/406) as "daemon is serving" → deny natives.
+# Use -4 (IPv4), explicit connect-timeout + max-time for reliability under load.
 if command -v curl >/dev/null 2>&1; then
-  curl -s -o /dev/null -m 1 "http://127.0.0.1:7333/mcp" 2>/dev/null || allow
+  if ! curl -4 --silent --connect-timeout 2 --max-time 3 \
+         -o /dev/null -I "http://127.0.0.1:7333/mcp" 2>/dev/null; then
+    allow
+  fi
 else
   allow
 fi

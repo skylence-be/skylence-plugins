@@ -1,5 +1,5 @@
 {
-  "description": "Skyline native tool shadowing for Grok: PreToolUse redirects read_file / search_replace / run_terminal_command / grep / list_dir to the equivalent skyline_* MCP tools (when daemon up). Fails open.",
+  "description": "Skyline native tool shadowing for Grok: PreToolUse redirects read_file / search_replace / run_terminal_command / grep / list_dir to the equivalent skyline_* MCP tools (when daemon up). Uses hardened probe so enforcement is reliable when the daemon is running.",
   "hooks": {
     "PreToolUse": [
       {
@@ -23,7 +23,7 @@
         ]
       },
       {
-        "matcher": "search_replace|Write|Edit|replace_file_content|write_to_file",
+        "matcher": "search_replace|write|Write|Edit|replace_file_content|write_to_file",
         "hooks": [
           {
             "type": "command",

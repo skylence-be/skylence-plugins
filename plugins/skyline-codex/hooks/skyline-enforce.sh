@@ -5,7 +5,8 @@
 MODE="${1:-}"
 
 if command -v curl >/dev/null 2>&1; then
-  curl -s -o /dev/null -m 1 "http://127.0.0.1:7333/mcp" 2>/dev/null || exit 0
+  # any response (incl. 4xx) means up
+  curl -4 --silent --connect-timeout 2 --max-time 3 -o /dev/null -I "http://127.0.0.1:7333/mcp" 2>/dev/null || exit 0
 else
   exit 0
 fi
