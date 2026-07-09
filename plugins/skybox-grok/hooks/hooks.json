@@ -1,0 +1,17 @@
+{
+  "description": "Skybox CLI->MCP steering for Grok: on run_terminal_command (or Bash), detect skybox subcommands that have MCP equivalents and deny with guidance to use MCP tools instead (when daemon up).",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "run_terminal_command|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skybox-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skybox-enforce.sh\"",
+            "statusMessage": "skybox-enforce"
+          }
+        ]
+      }
+    ]
+  }
+}

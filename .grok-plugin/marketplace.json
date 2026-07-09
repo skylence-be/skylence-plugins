@@ -1,0 +1,54 @@
+{
+  "name": "skylence-plugins",
+  "description": "Skyline, skybox, skycastle, and skyway plugins for Grok: MCP daemon wiring, enforcement/steering hooks, and operate/upgrade/uninstall skills.",
+  "owner": {
+    "name": "Skylence",
+    "contact": "github.com/skylence-be"
+  },
+  "plugins": [
+    {
+      "name": "skyline-grok",
+      "description": "Wires the skyline MCP daemon (port 7333) into Grok. HTTP MCP server + PreToolUse enforcement that steers Read/Edit/Write/Grep/Glob/run_terminal_command toward skyline_* MCP tools when the daemon is running. Includes upgrade and uninstall skills.",
+      "source": {
+        "type": "local",
+        "path": "./plugins/skyline-grok"
+      },
+      "homepage": "https://github.com/skylence-be/skylence-plugins",
+      "category": "core",
+      "keywords": ["skyline", "mcp", "enforcement", "grok"]
+    },
+    {
+      "name": "skybox-grok",
+      "description": "Wires the skybox code-knowledge-graph MCP daemon (HTTP, port 7070) into Grok: query, context, impact, route_map, indexing, and related tools. Read-only complement to native file tools. Includes CLI-to-MCP steering for skybox commands and operate/upgrade/uninstall skills.",
+      "source": {
+        "type": "local",
+        "path": "./plugins/skybox-grok"
+      },
+      "homepage": "https://github.com/skylence-be/skylence-plugins",
+      "category": "development",
+      "keywords": ["skybox", "code graph", "mcp", "index", "grok"]
+    },
+    {
+      "name": "skycastle-grok",
+      "description": "Wires the skycastle secrets-manager MCP daemon (HTTP, port 8210) into Grok: secret CRUD, KMS, certs, SSH, scanning, etc. Includes CLI-to-MCP steering for skycastle secrets/export and operate/upgrade/uninstall skills.",
+      "source": {
+        "type": "local",
+        "path": "./plugins/skycastle-grok"
+      },
+      "homepage": "https://github.com/skylence-be/skylence-plugins",
+      "category": "security",
+      "keywords": ["skycastle", "secrets", "mcp", "grok"]
+    },
+    {
+      "name": "skyway-grok",
+      "description": "Wires the skyway workflow-orchestration MCP daemon (HTTP, port 3090) into Grok: run/step inspection, job control, workflow lint/source, cost estimation, approval tools. Additive (no native tool replacement). Includes operate/upgrade/uninstall skills.",
+      "source": {
+        "type": "local",
+        "path": "./plugins/skyway-grok"
+      },
+      "homepage": "https://github.com/skylence-be/skylence-plugins",
+      "category": "development",
+      "keywords": ["skyway", "workflow", "mcp", "grok"]
+    }
+  ]
+}

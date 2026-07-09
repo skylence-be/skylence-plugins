@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "skycastle": {
+      "type": "http",
+      "url": "http://127.0.0.1:8210/mcp"
+    }
+  }
+}

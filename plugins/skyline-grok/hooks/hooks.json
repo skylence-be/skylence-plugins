@@ -1,0 +1,57 @@
+{
+  "description": "Skyline native tool shadowing for Grok: PreToolUse redirects read_file / search_replace / run_terminal_command / grep / list_dir to the equivalent skyline_* MCP tools (when daemon up). Fails open.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "run_terminal_command|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" bash",
+            "statusMessage": "skyline-enforce"
+          }
+        ]
+      },
+      {
+        "matcher": "read_file|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" read",
+            "statusMessage": "skyline-enforce"
+          }
+        ]
+      },
+      {
+        "matcher": "search_replace|Write|Edit|replace_file_content|write_to_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" edit",
+            "statusMessage": "skyline-enforce"
+          }
+        ]
+      },
+      {
+        "matcher": "grep|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" grep",
+            "statusMessage": "skyline-enforce"
+          }
+        ]
+      },
+      {
+        "matcher": "list_dir|Glob|list_dir",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" glob",
+            "statusMessage": "skyline-enforce"
+          }
+        ]
+      }
+    ]
+  }
+}

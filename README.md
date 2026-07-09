@@ -1,8 +1,8 @@
 # Skyline Plugins
 
-Marketplace repo for the Skyline binary plugins. Exposes the Skyline MCP daemon
-to Claude Code, Codex, and Antigravity with agent-side hooks that steer native
-file work toward Skyline's hash-guarded tools.
+Marketplace repo for the Skyline binary plugins. Exposes the Skyline, skybox,
+skycastle, and skyway MCP daemons to Grok, Claude Code, Codex, and Antigravity
+with agent-side hooks that steer native file work toward the richer MCP tools.
 
 ## Prerequisite
 
@@ -34,6 +34,24 @@ codex plugin add skyline-codex@skylence-plugins
 
 Restart Codex after installing the plugin.
 
+## Grok
+
+```bash
+grok plugin marketplace add skylence-be/skylence-plugins
+grok plugin install skyline-grok@skylence-plugins --trust
+grok plugin install skybox-grok@skylence-plugins --trust
+grok plugin install skycastle-grok@skylence-plugins --trust
+grok plugin install skyway-grok@skylence-plugins --trust
+```
+
+Use the same daemons as the other variants (ports 7333/7070/8210/3090).
+
+- `skyline-grok`: full native tool shadowing when the daemon is reachable.
+- `skybox-grok` / `skycastle-grok`: additive + steering of relevant CLI commands.
+- `skyway-grok`: additive (no file-tool shadowing).
+
+Skills appear as `/<plugin>:operate`, `/<plugin>:upgrade`, etc. Hooks follow Grok's decision contract and use `GROK_PLUGIN_ROOT`.
+
 ## skybox-claude (Claude Code)
 
 Separate, optional plugin that wires the **skybox** code-knowledge-graph MCP
@@ -57,40 +75,33 @@ available in a fresh Claude Code session.
 
 ## Included plugins
 
-- `skyline-claude`: plugin-local HTTP MCP config, PreToolUse enforcement,
-  daemon watchdog + friction-nudge monitors, and `upgrade` / `uninstall`
-  commands.
-- `skyline-codex`: plugin-local HTTP MCP config, PreToolUse enforcement hooks,
-  and `upgrade` / `uninstall` skills.
-- `skyline-antigravity`: Antigravity-side MCP config, `run_command`/file-tool
-  enforcement hooks, and `upgrade` / `uninstall` skills.
-- `skybox-claude`: plugin-local HTTP MCP config wiring the skybox
-  code-knowledge-graph daemon (port 7070), a daemon watchdog monitor, a CLI→MCP
-  enforcement hook (steers `skybox` CLI subcommands to the MCP tools), an
-  `operate` skill, and `upgrade` / `uninstall` commands. No native-file-tool
-  enforcement (it does not replace Read/Edit/Write).
-- `skybox-codex`: Codex sibling of `skybox-claude` — plugin-local HTTP MCP
-  config (port 7070), the same CLI→MCP enforcement hook, an `operate` skill,
-  and `upgrade` / `uninstall` skills. No daemon watchdog (Codex has no monitor
-  system).
-- `skybox-antigravity`: Google Antigravity sibling — `mcp_config.json` MCP
-  wiring (port 7070), a `run_command` CLI→MCP enforcement hook (STDIN/STDOUT
-  decision contract), an `operate` skill, and `upgrade` / `uninstall` skills.
-- `skyway-claude`: plugin-local HTTP MCP config wiring the skyway
-  workflow-orchestration daemon (port 3090), a daemon watchdog monitor, a
-  `/skyway-status` command, an `operate` skill, and `upgrade` / `uninstall`
-  commands. Additive — no enforcement.
-- `skyway-codex` / `skyway-antigravity`: siblings with the same MCP wiring
-  (port 3090) plus `operate`, `upgrade`, and `uninstall` skills.
-- `skycastle-claude`: plugin-local HTTP MCP config wiring the skycastle
-  secrets-manager MCP daemon (port 8210), a daemon watchdog monitor, a CLI→MCP
-  enforcement hook (steers `skycastle secrets`/`export` to the MCP tools), a
-  `/skycastle-status` command, an `operate` skill, and `upgrade` / `uninstall`
-  commands.
-- `skycastle-codex`: Codex sibling — the same MCP wiring (port 8210) and
-  CLI→MCP enforcement hook, plus `operate` / `upgrade` / `uninstall` skills.
-- `skycastle-antigravity`: Antigravity sibling — `mcp_config.json` MCP wiring
-  (port 8210) plus `operate` / `upgrade` / `uninstall` skills.
+**Grok** (`.grok-plugin/marketplace.json`):
+
+- `skyline-grok` — Full enforcement (shadows `read_file`, `search_replace`,
+  `grep`, `list_dir`, `run_terminal_command` with skyline_* tools when daemon
+  is up). Grok-native hooks.
+- `skybox-grok` — skybox code-knowledge-graph MCP (port 7070) + CLI steering
+  for `skybox` subcommands.
+- `skycastle-grok` — skycastle secrets MCP (port 8210) + steering for secrets/export.
+- `skyway-grok` — skyway workflow MCP (port 3090). Purely additive.
+
+**Claude Code** (`.claude-plugin/marketplace.json`):
+
+- `skyline-claude` — HTTP MCP + PreToolUse enforcement, daemon watchdog,
+  friction-nudge monitors, upgrade/uninstall commands.
+- `skybox-claude` — skybox graph MCP + CLI→MCP hook + operate skill + commands.
+  Read-only (does not replace native file tools).
+- `skyway-claude` — skyway workflow MCP + monitor + `/skyway-status` + operate.
+  Additive.
+- `skycastle-claude` — skycastle secrets MCP + CLI steering + status command +
+  operate skill.
+
+**Codex and Antigravity** (`.agents/plugins/marketplace.json`):
+
+- `skyline-codex` / `skyline-antigravity` — enforcement hooks + upgrade/uninstall.
+- `skybox-codex` / `skybox-antigravity` — graph MCP + CLI steering + operate/uninstall.
+- `skyway-codex` / `skyway-antigravity` — workflow MCP + operate/upgrade/uninstall.
+- `skycastle-codex` / `skycastle-antigravity` — secrets MCP + steering + skills.
 
 ## Verify
 
@@ -104,9 +115,13 @@ MCP tools should include `skyline_read`, `skyline_grep`, `skyline_edit`,
 
 ## Upgrade and removal
 
-- Claude: run `/upgrade` or `/uninstall` from the `skyline-claude` plugin.
-- Codex: ask for the Skyline upgrade or uninstall skill.
+- **Grok**: use `/skyline-grok:upgrade`, `/skyline-grok:uninstall` (or the
+  equivalent for skybox/skycastle/skyway).
+- **Claude**: run `/upgrade` or `/uninstall` from the installed plugin.
+- **Codex**: ask for the upgrade or uninstall skill.
 
 Manual removal commands are printed by the uninstall flow. Package removal uses
 the package manager you installed with, for example
 `npm uninstall -g @skylence-ai/skyline`.
+
+See the per-plugin `plugins/*-grok/README.md` for Grok-specific notes.
