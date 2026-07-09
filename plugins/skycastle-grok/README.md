@@ -15,7 +15,8 @@ Wires the skycastle secrets-manager MCP daemon (HTTP on 127.0.0.1:8210) into Gro
 
 ```bash
 grok plugin marketplace add skylence-be/skylence-plugins
-grok plugin install skycastle-grok@skylence-plugins --trust
+grok plugin marketplace update skylence-plugins
+grok plugin install skycastle-grok@skylence-be/skylence-plugins --trust
 ```
 
 The skycastle MCP tools are then available alongside (and preferred over) the matching CLI verbs.

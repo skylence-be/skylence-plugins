@@ -15,7 +15,8 @@ Wires the skybox HTTP MCP daemon (127.0.0.1:7070) into Grok. Provides read-only 
 
 ```bash
 grok plugin marketplace add skylence-be/skylence-plugins
-grok plugin install skybox-grok@skylence-plugins --trust
+grok plugin marketplace update skylence-plugins
+grok plugin install skybox-grok@skylence-be/skylence-plugins --trust
 ```
 
 Ensure the skybox daemon is serving:

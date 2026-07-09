@@ -17,7 +17,8 @@ This is the Grok sibling of `skyline-claude`, `skyline-codex`, and `skyline-anti
 
 ```bash
 grok plugin marketplace add skylence-be/skylence-plugins
-grok plugin install skyline-grok@skylence-plugins --trust
+grok plugin marketplace update skylence-plugins
+grok plugin install skyline-grok@skylence-be/skylence-plugins --trust
 ```
 
 After install (and `skyline daemon` running), the `skyline_*` tools appear and native operations are steered when the daemon is healthy.

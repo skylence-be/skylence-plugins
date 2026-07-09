@@ -17,7 +17,8 @@ This is the Grok sibling of `skyway-claude`, `skyway-codex`, and `skyway-antigra
 
 ```bash
 grok plugin marketplace add skylence-be/skylence-plugins
-grok plugin install skyway-grok@skylence-plugins --trust
+grok plugin marketplace update skylence-plugins
+grok plugin install skyway-grok@skylence-be/skylence-plugins --trust
 ```
 
 ## Notes

@@ -38,11 +38,16 @@ Restart Codex after installing the plugin.
 
 ```bash
 grok plugin marketplace add skylence-be/skylence-plugins
-grok plugin install skyline-grok@skylence-plugins --trust
-grok plugin install skybox-grok@skylence-plugins --trust
-grok plugin install skycastle-grok@skylence-plugins --trust
-grok plugin install skyway-grok@skylence-plugins --trust
+grok plugin marketplace update skylence-plugins
+grok plugin install skyline-grok@skylence-be/skylence-plugins --trust
+grok plugin install skybox-grok@skylence-be/skylence-plugins --trust
+grok plugin install skycastle-grok@skylence-be/skylence-plugins --trust
+grok plugin install skyway-grok@skylence-be/skylence-plugins --trust
 ```
+
+**Important:** 
+- After adding, run `grok plugin marketplace update skylence-plugins`.
+- Use the full qualifier `@skylence-be/skylence-plugins` when installing.
 
 Use the same daemons as the other variants (ports 7333/7070/8210/3090).
 
