@@ -23,7 +23,9 @@ const SWITCH_EDIT = `Skyline is active. Switch to skyline tools for this session
 const MESSAGES = {
   read: `skyline_read replaces Read. ${SWITCH_ORIENT}`,
   edit: `skyline_edit/skyline_create replace Edit/Write. ${SWITCH_EDIT}`,
-  grep: `skyline_grep/skyline_sgrep replace Grep. ${SWITCH_ORIENT}`,
+  // skylence-be/binary-skyline#547 (Solo scratchpad 204 SS4 steering rider): name
+  // skyline_symbol_card as the PHP symbol-question starting point.
+  grep: `skyline_grep/skyline_sgrep replace Grep; for PHP symbol questions, skyline_symbol_card starts there. ${SWITCH_ORIENT}`,
   glob: `skyline_find/skyline_tree replace Glob. ${SWITCH_ORIENT}`,
   bash: `skyline_grep/skyline_find/skyline_git/skyline_run/skyline_test replace Bash. ${SWITCH_EDIT}`,
 };
