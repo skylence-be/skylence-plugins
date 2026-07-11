@@ -1,3 +1,7 @@
+// dormant: CC fires no PreToolUse on MCP tools, see skylence-plugins#20
+// logic lives on via steering-detect.js
+// file and tests kept for resurrection
+
 // PreToolUse NUDGE (binary-skyline#467): when a skyline_grep looks like a SYMBOL
 // search on code, inject a steering reminder toward the exact semantic tools,
 // WITHOUT blocking. Text-pattern greps (string literals, route names, config
