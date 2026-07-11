@@ -1,6 +1,17 @@
 {
   "description": "Skyline native tool shadowing for Grok: PreToolUse redirects read_file / search_replace / run_terminal_command / grep / list_dir to the equivalent skyline_* MCP tools. Enforcement is active whenever this plugin's hooks are loaded (no fragile daemon probe).",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" sessionstart",
+            "statusMessage": "skyline-session-start"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "run_terminal_command|Bash",
