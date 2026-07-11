@@ -26,7 +26,7 @@ let testPort = 0; // will be set to UP_PORT once python dummy is ready
 
 before(async () => {
   // clean markers used in tests
-  ["sess-down", "sess-up1", "sess-up2", "sess-small", "sess-normal"].forEach((s) => {
+  ["sess-down", "sess-up1", "sess-up2", "sess-small", "sess-normal", "sess-grep-php", "sess-grep-config"].forEach((s) => {
     try { fs.rmSync(getMarker(s), { force: true }); } catch {}
   });
 
@@ -75,7 +75,7 @@ after(() => {
     try { pyServer.stdin.end(); } catch {}
     pyServer.kill("SIGKILL");
   }
-  ["sess-down", "sess-up1", "sess-up2", "sess-small", "sess-normal"].forEach((s) => {
+  ["sess-down", "sess-up1", "sess-up2", "sess-small", "sess-normal", "sess-grep-php", "sess-grep-config"].forEach((s) => {
     try { fs.rmSync(getMarker(s), { force: true }); } catch {}
   });
 });
@@ -157,4 +157,46 @@ test("bash long command without pipe still triggers when >=120 or has special? w
   });
   assert.equal(res.status, 2);
   assert.match(res.stderr, /skyline.*replace Bash/, "long bash triggers full when first");
+});
+
+// --- R2 steering fold-in tests (skylence-plugins#20) ----------------------
+// All original 5 tests above remain untouched and green. These assert append
+// behavior for symbol-hunt patterns on native Grep only (bash similar but via cmd).
+
+function markerDir(file) {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "enforce-marker-"));
+  fs.writeFileSync(path.join(d, file), "{}");
+  return d;
+}
+function cleanup(d) {
+  try { fs.rmSync(d, { recursive: true, force: true }); } catch {}
+}
+
+test("native Grep redirect with `use App\\Models\\User` in a composer cwd: message contains `skyline_symbol_card`", () => {
+  const sess = "sess-grep-php";
+  const php = markerDir("composer.json");
+  try {
+    const r = runHook("grep", { CLAUDE_SESSION_ID: sess }, {
+      cwd: php,
+      tool_input: { pattern: "use App\\Models\\User" }
+    });
+    assert.equal(r.status, 2, "still denies (redirects)");
+    assert.match(r.stderr, /skyline_grep\/skyline_sgrep replace Grep/, "base grep redirect present");
+    assert.match(r.stderr, /skyline_symbol_card\(path, line, symbol\)/, "steering sentence appended for php symbol hunt");
+    assert.ok(!r.stderr.includes("full guidance shown once"), "first is full");
+  } finally {
+    cleanup(php);
+  }
+});
+
+test("native Grep redirect with a config-key pattern: message unchanged, no steering sentence", () => {
+  const sess = "sess-grep-config";
+  // config-key like pattern that is NOT treated as symbol hunt (or suppressed); here a spaced literal
+  const r = runHook("grep", { CLAUDE_SESSION_ID: sess }, {
+    tool_input: { pattern: "some config key with spaces" }
+  });
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /skyline_grep\/skyline_sgrep replace Grep/, "base present");
+  assert.ok(!r.stderr.includes("Symbol hunt?"), "no steering sentence for non-symbol pattern");
+  assert.ok(!r.stderr.includes("skyline_symbol_card"), "no php card mention");
 });
