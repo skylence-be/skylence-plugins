@@ -18,6 +18,23 @@ const DAEMON_HOST = process.env.SKYLINE_DAEMON_HOST || "127.0.0.1";
 const DAEMON_PORT = Number(process.env.SKYLINE_DAEMON_PORT || 7333);
 const DAEMON_TIMEOUT = 500;
 
+// PHP marker: a composer.json in the cwd flags a PHP project, which adds the
+// PHP-oriented skyline_symbol_card to the on-ramp menu plus a one-sentence note.
+// Fail-open: any fs/cwd error just omits the augmentation (no throw, no block).
+function hasComposer() {
+  try {
+    return fs.existsSync(path.join(process.cwd(), "composer.json"));
+  } catch (_e) {
+    return false;
+  }
+}
+
+const COMPOSER = hasComposer();
+
+// The CORE menu the switch instruction points agents at. The three semantic
+// navigators (definition/references/symbols) are language-generic and always
+// listed (skylence-plugins#15 on-ramp, design pad 226 §2 L2). skyline_symbol_card
+// is PHP-oriented, so it joins the menu only in a PHP project.
 const CORE =
   "select:mcp__plugin_skyline-claude_skyline__skyline_read," +
   "mcp__plugin_skyline-claude_skyline__skyline_edit," +
@@ -26,17 +43,28 @@ const CORE =
   "mcp__plugin_skyline-claude_skyline__skyline_tree," +
   "mcp__plugin_skyline-claude_skyline__skyline_find," +
   "mcp__plugin_skyline-claude_skyline__skyline_git," +
-  "mcp__plugin_skyline-claude_skyline__skyline_run";
+  "mcp__plugin_skyline-claude_skyline__skyline_run," +
+  "mcp__plugin_skyline-claude_skyline__skyline_definition," +
+  "mcp__plugin_skyline-claude_skyline__skyline_references," +
+  "mcp__plugin_skyline-claude_skyline__skyline_symbols" +
+  (COMPOSER
+    ? ",mcp__plugin_skyline-claude_skyline__skyline_symbol_card"
+    : "");
 
-const SWITCH_ORIENT = `Skyline is active. Switch to skyline tools for this session: run ToolSearch("${CORE}") then retry.`;
-const SWITCH_EDIT = `Skyline is active. Switch to skyline tools for this session: run ToolSearch("${CORE}") then skyline_guide, then retry.`;
+// Appended to the switch guidance in a PHP project. This consolidates the
+// interim PHP steering PR#12 added to the grep message: symbol_card is named
+// once here (and listed in CORE) for every redirected native tool, not only grep.
+const PHP_NOTE = COMPOSER
+  ? " PHP project: skyline_symbol_card answers symbol questions (declaration + callers + resolution) in one call."
+  : "";
+
+const SWITCH_ORIENT = `Skyline is active. Switch to skyline tools for this session: run ToolSearch("${CORE}") then retry.${PHP_NOTE}`;
+const SWITCH_EDIT = `Skyline is active. Switch to skyline tools for this session: run ToolSearch("${CORE}") then skyline_guide, then retry.${PHP_NOTE}`;
 
 const MESSAGES = {
   read: `skyline_read replaces Read. ${SWITCH_ORIENT}`,
   edit: `skyline_edit/skyline_create replace Edit/Write. ${SWITCH_EDIT}`,
-  // skylence-be/binary-skyline#547 (Solo scratchpad 204 SS4 steering rider): name
-  // skyline_symbol_card as the PHP symbol-question starting point.
-  grep: `skyline_grep/skyline_sgrep replace Grep; for PHP symbol questions, skyline_symbol_card starts there. ${SWITCH_ORIENT}`,
+  grep: `skyline_grep/skyline_sgrep replace Grep. ${SWITCH_ORIENT}`,
   glob: `skyline_find/skyline_tree replace Glob. ${SWITCH_ORIENT}`,
   bash: `skyline_grep/skyline_find/skyline_git/skyline_run/skyline_test replace Bash. ${SWITCH_EDIT}`,
 };
