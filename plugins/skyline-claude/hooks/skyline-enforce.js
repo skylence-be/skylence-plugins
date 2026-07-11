@@ -12,6 +12,14 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
+// Factored detectors for symbol-hunt steering on native grep/bash (skylence-plugins#20).
+// Only used to decide whether + what to append; never changes deny/allow/throttle/daemon logic.
+const {
+  isSymbolHunt,
+  targetsNonCode,
+  routeLang,
+} = require("./steering-detect");
+
 const MODE = process.argv[2] || "";
 
 const DAEMON_HOST = process.env.SKYLINE_DAEMON_HOST || "127.0.0.1";
@@ -113,6 +121,30 @@ async function main() {
   const input = await readToolInput();
   const ti = input.tool_input || input.toolInput || input || {};
   const command = MODE === "bash" ? String(ti.command || "") : "";
+  const cwd = input.cwd ? String(input.cwd) : process.cwd();
+
+  // Symbol-hunt detection for R2 steering append (only on grep/bash; uses shared detector).
+  // For Grep: direct tool_input.pattern.
+  // For Bash: only if cmd contains grep/rg; best-effort first quoted string; if none extractable => no append.
+  let pattern = "";
+  let glob = "";
+  if (MODE === "grep") {
+    pattern = String(ti.pattern == null ? "" : ti.pattern);
+    glob = String(ti.glob || ti.type || "");
+  } else if (MODE === "bash" && /grep|rg/i.test(command)) {
+    const m = command.match(/"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/);
+    if (m) {
+      pattern = m[1] || m[2] || "";
+    } else {
+      pattern = ""; // not extractable => skip steering silently (per contract)
+    }
+  }
+  const trimmedP = pattern.trim();
+  const isSymHunt = !!(trimmedP && isSymbolHunt(trimmedP) && !targetsNonCode(glob));
+  let huntLang = "generic";
+  if (isSymHunt) {
+    huntLang = routeLang(trimmedP, glob, cwd);
+  }
 
   if (MODE === "bash" && isSubThreshold(command)) {
     // size threshold: skip the nudge entirely for trivial commands
@@ -153,7 +185,15 @@ async function main() {
   }
 
   if (showFull) {
-    process.stderr.write(msg + "\n");
+    let outMsg = msg;
+    if ((MODE === "grep" || MODE === "bash") && isSymHunt) {
+      const steer =
+        huntLang === "php"
+          ? " Symbol hunt? skyline_symbol_card(path, line, symbol) answers declaration + true callers + resolution in one call; skyline_definition / skyline_references also work. Text grep over-counts comments/strings."
+          : " Symbol hunt? Prefer skyline_definition / skyline_references / skyline_implementation over text grep.";
+      outMsg = msg + steer;
+    }
+    process.stderr.write(outMsg + "\n");
   } else {
     process.stderr.write("Skyline redirect (full guidance shown once per session)\n");
   }
