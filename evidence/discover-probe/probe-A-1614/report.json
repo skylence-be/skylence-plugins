@@ -1,0 +1,98 @@
+{
+  "agent": "claude-opus",
+  "session_id": "probe-a-1614",
+  "generated_at": "2026-07-11T07:38:38.500Z",
+  "distinct_calls": [
+    {
+      "tool": "skyline_grep",
+      "args": "(pattern: \"^\\\\s*(final\\\\s+)?class User\\\\b\", path: \"/Users/jv/Code/aureuserp\", glob: \"*.php\", limit: 100)",
+      "kind": "text"
+    },
+    {
+      "tool": "skyline_grep",
+      "args": "(pattern: \"use App\\\\\\\\Models\\\\\\\\User\\\\b\", path: \"/Users/jv/Code/aureuserp\", glob: \"*.php\", count_only: true)",
+      "kind": "text"
+    },
+    {
+      "tool": "skyline_grep",
+      "args": "(pattern: \"use App\\\\\\\\Models\\\\\\\\User\\\\b\", path: \"/Users/jv/Code/aureuserp\", glob: \"*.php\", limit: 50)",
+      "kind": "text"
+    },
+    {
+      "tool": "skyline_grep",
+      "args": "(pattern: \"Webkul\\\\\\\\Security\\\\\\\\Models\\\\\\\\User\\\\b\", path: \"/Users/jv/Code/aureuserp\", glob: \"*.php\", count_only: true)",
+      "kind": "text"
+    },
+    {
+      "tool": "skyline_read",
+      "args": "(path: \"/Users/jv/Code/aureuserp/plugins/webkul/security/src/Models/User.php\")",
+      "kind": "text"
+    },
+    {
+      "tool": "skyline_read",
+      "args": "(path: \"/Users/jv/Code/aureuserp/config/auth.php\")",
+      "kind": "text"
+    }
+  ],
+  "semantic_tools_used": [],
+  "text_tools_used": [
+    "skyline_grep",
+    "skyline_read"
+  ],
+  "semantic_used_session": false,
+  "distinct_call_count": 6,
+  "grep_count_before_first_semantic": 4,
+  "tasks": {
+    "T1": {
+      "kind": "php-symbol",
+      "desc": "User model shape / extends",
+      "semantic_used": false,
+      "attribution": "session-level (best-effort)"
+    },
+    "T2": {
+      "kind": "php-symbol",
+      "desc": "usages / blast-radius (caller count)",
+      "semantic_used": false,
+      "attribution": "session-level (best-effort)"
+    },
+    "T3": {
+      "kind": "php-symbol",
+      "desc": "multi-User disambiguation / resolution",
+      "semantic_used": false,
+      "attribution": "session-level (best-effort)"
+    },
+    "T4": {
+      "kind": "rustgo-symbol",
+      "desc": "rust/go symbol task (generalization control)",
+      "semantic_used": false,
+      "attribution": "session-level (best-effort)"
+    },
+    "T5": {
+      "kind": "text",
+      "desc": "pure text config-key hunt (false-positive control)",
+      "semantic_used": false,
+      "attribution": "session-level (best-effort)"
+    }
+  },
+  "t2_caller_parity": {
+    "class": "text-633",
+    "has404": false,
+    "has633": true
+  },
+  "t5_nudge_crosscheck": {
+    "session_scoped": true,
+    "total_fires": 0,
+    "php_fires": 0,
+    "pass": true,
+    "fired_langs": []
+  },
+  "gate_b": {
+    "php_semantic_tasks": 0,
+    "t3_semantic": false,
+    "t4_semantic": false,
+    "t5_zero_php_nudge": true,
+    "pass": false
+  },
+  "scrollback_source": "evidence/discover-probe/probe-A-1614/scrollback.txt",
+  "nudge_log_source": "(absent)"
+}
