@@ -72,18 +72,18 @@ function logFire(rec) {
 }
 
 // --- messages --------------------------------------------------------------
-// PHP card-first message (fire 1): pipeline recipe + a concrete call template.
+// PHP card-first message (fire 1): check-prescription (run the reconcile).
 function phpMessage(pattern) {
-  return `That skyline_grep pattern ("${pattern}") is a PHP symbol hunt. skyline_symbol_card answers it in ONE call: take any grep hit (path + line) and call skyline_symbol_card(path, line, symbol) — you get the declaration, signature, the resolution trace across same-named candidates (with excluded ones), the true caller count, implementations, and tests, instead of hand-counting text matches (text counts over-count comments/strings and miss fully-qualified refs). "Who uses this" → skyline_references; "where is it defined" → skyline_definition. Genuinely searching literal TEXT (a string, a route, a config key)? Ignore this and proceed.`;
+  return `That skyline_grep pattern ("${pattern}") is a PHP symbol hunt, and a raw text count will mislead you here: it over-counts comments and strings and conflates same-named methods on different classes. Don't conclude from the grep alone. Run the check: take one hit (path + line) and call skyline_symbol_card(path, line, symbol) or skyline_references, then (1) treat any hit tagged name_only as UNCONFIRMED until you verify its receiver type, and (2) if a resolved count disagrees with your grep count, decompose by receiver before trusting either. symbol_card's first line reports the index's own state (provenance and freshness); read it rather than assuming the index is degraded.`;
 }
 
-// rust/go + generic message (fire 1): the original five-tool steering text.
+// rust/go + generic message (fire 1): check-prescription for structural greps.
 function genericMessage(pattern) {
-  return `That skyline_grep pattern ("${pattern}") looks like a SYMBOL search, not a text search. For structural questions — where is X defined, who calls Y, what implements this interface, what type is this, what breaks if I change it — the semantic tools are exact: they will not miss dynamic references or over-match the same word in comments/strings. Prefer skyline_definition / skyline_references / skyline_implementation / skyline_type_definition / skyline_call_hierarchy (or, on an indexed repo, skybox query / context / impact for cross-repo execution flows). If you are genuinely searching for literal TEXT (a string literal, a route name, a config key, a TODO) then grep is correct — ignore this and proceed.`;
+  return `That skyline_grep pattern ("${pattern}") looks like a SYMBOL search. A text count misleads for structural questions (who calls Y, what implements this, what breaks if I change it): it over-matches comments and strings and misses fully-qualified or dynamic refs. Don't conclude from the grep alone. Run the check: call skyline_references, skyline_definition, or skyline_implementation on one hit; treat any unproven or name_only hit as UNCONFIRMED until you verify its receiver; and if a resolved count disagrees with your grep count, reconcile before trusting either. Read the tool's own freshness and provenance rather than assuming the index is degraded.`;
 }
 
 const ONE_LINER =
-  "Reminder: skyline_symbol_card / skyline_references resolve PHP symbols exactly; grep counts mislead.";
+  "Reminder: before counting call sites from grep, reconcile with skyline_references and treat name_only or unproven hits as unconfirmed until you check the receiver.";
 
 // fire 1 => full (language-specific), fires 2-3 => one-liner, fires >3 => silent.
 function buildMessage(lang, pattern, fireN) {
