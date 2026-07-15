@@ -32,9 +32,9 @@ process.stdin.on("end", () => {
 
   let context = "";
   if (hasMarker(cwd, "composer.json")) {
-    context = "Skyline semantic PHP tools are active here. For symbol questions (where is X defined, who calls Y, which same-named class resolves) start with skyline_symbol_card(path, line, symbol), one call for declaration + true callers + resolution trace, or skyline_definition / skyline_references. Use skyline_grep only for literal text; text counts over-count comments/strings.";
+    context = "Skyline semantic PHP tools are active here. For symbol questions (where is X defined, who calls Y, which same-named class resolves), don't conclude from text counts: run skyline_symbol_card(path, line, symbol) or skyline_references and reconcile. A name_only hit is unconfirmed until you verify its receiver, and if symbol_card's count disagrees with a grep count, decompose by receiver. Read symbol_card's provenance and freshness before assuming the index is degraded; use skyline_grep for literal text only.";
   } else if (hasMarker(cwd, "Cargo.toml") || hasMarker(cwd, "go.mod")) {
-    context = "Skyline semantic tools active: prefer skyline_definition / skyline_references / skyline_implementation over grep for symbol questions.";
+    context = "Skyline semantic tools active. For symbol questions, don't conclude from grep counts: run skyline_definition, skyline_references, or skyline_implementation and reconcile any unproven hit by checking its receiver; read the tool's freshness before assuming degradation.";
   }
 
   if (!context) {

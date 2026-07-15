@@ -69,7 +69,7 @@ test("`class User` decl in a composer.json cwd => php-symbol message (was silent
   );
   assert.ok(ctx, "a nudge fired (previously silent)");
   assert.match(ctx, /is a PHP symbol hunt/, "routed to the PHP message");
-  assert.match(ctx, /skyline_symbol_card answers it in ONE call/);
+  assert.match(ctx, /Run the check: take one hit \(path \+ line\) and call skyline_symbol_card/);
   fs.rmSync(tmp, { recursive: true, force: true });
   fs.rmSync(php, { recursive: true, force: true });
 });
@@ -115,8 +115,8 @@ test("rust declaration in a Cargo.toml cwd => rust/go (generic five-tool) messag
   assert.doesNotMatch(ctx, /PHP symbol hunt/, "not the PHP message");
   assert.match(
     ctx,
-    /skyline_definition \/ skyline_references \/ skyline_implementation/,
-    "the five-tool rust/go message"
+    /Run the check: call skyline_references, skyline_definition, or skyline_implementation/,
+    "the check-prescription rust/go message"
   );
   fs.rmSync(tmp, { recursive: true, force: true });
   fs.rmSync(rust, { recursive: true, force: true });
@@ -165,7 +165,7 @@ test("session cap: fire 1 full, fires 2-3 one-liner, fire 4+ silent", () => {
 });
 
 const ONE_LINER =
-  "Reminder: skyline_symbol_card / skyline_references resolve PHP symbols exactly; grep counts mislead.";
+  "Reminder: before counting call sites from grep, reconcile with skyline_references and treat name_only or unproven hits as unconfirmed until you check the receiver.";
 
 // --- fail-open -------------------------------------------------------------
 
