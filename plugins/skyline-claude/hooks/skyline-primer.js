@@ -18,6 +18,25 @@ function hasMarker(cwd, name) {
   }
 }
 
+// The skylore bank is operator-wide, not per-project, so this fires regardless
+// of language markers. Only advertised when the bank actually exists: a first
+// recall that returns nothing teaches the agent within one call that recall is
+// useless, right before the bank would have become useful.
+function hasLoreBank() {
+  try {
+    const explicit = process.env.SKYLORE_DB;
+    if (explicit) return fs.existsSync(explicit);
+    const home = process.env.HOME || process.env.USERPROFILE;
+    if (!home) return false;
+    return fs.existsSync(path.join(home, ".skylence", "skylore.db"));
+  } catch (_e) {
+    return false;
+  }
+}
+
+const LORE_CONTEXT =
+  "Skyline hosts the skylore memory bank. Call skyline_lore_recall BEFORE re-deriving any \"why is it done this way / did we already decide X / what broke last time\" question: it is ranked (BM25), deterministic, costs no LLM call, and every hit cites its provenance. Keep durable decisions and gotchas with skyline_lore_mark. Route by tier: skyline_lore_* for cross-project decisions, preferences and gotchas that live in no file; skyline_memory_* for per-project markdown notes; skybox/LSP for code structure, which you should never memorize because a parser re-derives it.";
+
 let buf = "";
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", (d) => (buf += d));
@@ -37,8 +56,12 @@ process.stdin.on("end", () => {
     context = "Skyline semantic tools active. For symbol questions, don't conclude from grep counts: run skyline_definition, skyline_references, or skyline_implementation and reconcile any unproven hit by checking its receiver; read the tool's freshness before assuming degradation.";
   }
 
+  if (hasLoreBank()) {
+    context = context ? context + "\n\n" + LORE_CONTEXT : LORE_CONTEXT;
+  }
+
   if (!context) {
-    process.exit(0); // no marker or empty => no output
+    process.exit(0); // no marker, no bank => no output
   }
 
   process.stdout.write(

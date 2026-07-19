@@ -22,8 +22,22 @@ function run(input, env = {}) {
   return spawnSync(process.execPath, [HOOK], {
     encoding: "utf8",
     input: JSON.stringify(input),
-    env: { ...process.env, ...env },
+    // Hermetic by default: the operator's real ~/.skylence/skylore.db must not
+    // leak into marker tests, or they fail only on machines that use skylore.
+    // Callers that exercise lore override SKYLORE_DB explicitly.
+    env: {
+      ...process.env,
+      SKYLORE_DB: path.join(os.tmpdir(), "primer-no-such-bank.db"),
+      ...env,
+    },
   });
+}
+
+function fakeBank() {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "primer-bank-"));
+  const f = path.join(d, "skylore.db");
+  fs.writeFileSync(f, "");
+  return { dir: d, db: f };
 }
 
 function cleanup(d) {
@@ -84,4 +98,48 @@ test("malformed stdin exits 0 empty", () => {
   });
   assert.equal(res.status, 0);
   assert.equal(res.stdout.trim(), "");
+});
+
+test("lore context is emitted when the bank exists, regardless of language marker", () => {
+  const bank = fakeBank();
+  const plain = fs.mkdtempSync(path.join(os.tmpdir(), "primer-plain-"));
+  try {
+    const res = run({ cwd: plain }, { SKYLORE_DB: bank.db });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.match(ctx, /skyline_lore_recall/);
+    assert.match(ctx, /skyline_lore_mark/);
+    // the routing rule is the point: it must name all three tiers
+    assert.match(ctx, /skyline_memory_\*/);
+    assert.match(ctx, /skybox/);
+  } finally {
+    cleanup(bank.dir);
+    cleanup(plain);
+  }
+});
+
+test("no bank means no lore context (never advertise an empty bank)", () => {
+  const plain = fs.mkdtempSync(path.join(os.tmpdir(), "primer-plain-"));
+  try {
+    const res = run({ cwd: plain }, { SKYLORE_DB: path.join(plain, "absent.db") });
+    assert.equal(res.status, 0);
+    assert.equal(res.stdout.trim(), "");
+  } finally {
+    cleanup(plain);
+  }
+});
+
+test("php marker and lore bank compose without clobbering each other", () => {
+  const php = markerDir("composer.json");
+  const bank = fakeBank();
+  try {
+    const res = run({ cwd: php }, { SKYLORE_DB: bank.db });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(ctx.startsWith(PHP_CTX), "php steer kept verbatim and first");
+    assert.match(ctx, /skyline_lore_recall/);
+  } finally {
+    cleanup(php);
+    cleanup(bank.dir);
+  }
 });
