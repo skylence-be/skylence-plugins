@@ -72,5 +72,5 @@ process.stdin.on("end", () => {
       },
     }) + "\n"
   );
-  process.exit(0);
+  // Natural exit flushes async Windows pipe writes (see skyline-regate.js).
 });

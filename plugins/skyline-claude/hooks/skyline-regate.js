@@ -33,5 +33,6 @@ process.stdin.on("end", () => {
       },
     }) + "\n"
   );
-  process.exit(0);
+  // No explicit exit after the write: Windows pipe writes are async and
+  // process.exit can truncate them (rE finding); natural exit flushes.
 });
