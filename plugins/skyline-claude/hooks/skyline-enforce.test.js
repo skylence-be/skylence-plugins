@@ -1,8 +1,13 @@
-// node:test for skyline-enforce.js hardening (binary-skyline#549).
+// node:test for skyline-enforce.js (#549 daemon/threshold + #706 replacement guidance).
 // Run with: node --test plugins/skyline-claude/hooks/skyline-enforce.test.js
-// Covers: daemon-down passthrough (notice + exit0), second-denial one-liner,
-// sub-threshold silence (no output), normal deny path (full on first, exit2).
-// Uses env overrides for daemon addr (matches existing test pattern style using env).
+//
+// #706 acceptance matrix:
+//   - every denial carries exact substitute (git diff / grep -rli / cat / Read / Write)
+//   - out-of-tree Write/Read pass through
+//   - "full guidance shown once per session" one-liner is GONE
+//   - ToolSearch select string on every denial
+//   - second denial still carries substitute (idempotent)
+// Keeps: daemon-down passthrough, sub-threshold silence.
 // Self-contained; cleans its marker files.
 
 const { test, before, after } = require("node:test");
@@ -13,26 +18,55 @@ const os = require("os");
 const path = require("path");
 
 const HOOK = path.resolve(__dirname, "skyline-enforce.js");
+// Ephemeral port to avoid clashes with parallel hook suites / leftover dummies.
+const UP_PORT = 18000 + (process.pid % 1000);
 
-const UP_PORT = 17333; // dedicated free port for dummy daemon in up tests (use python server to ensure child reachability)
+function getReminderMarker(sess) {
+  const key = String(sess).replace(/[^a-z0-9_-]/gi, "_");
+  return path.join(os.tmpdir(), `skyline-enforce-reminder-${key}.marker`);
+}
 
-function getMarker(sess) {
+// legacy marker name from pre-#706 throttle — clean if present so old runs don't leak
+function getLegacyMarker(sess) {
   const key = String(sess).replace(/[^a-z0-9_-]/gi, "_");
   return path.join(os.tmpdir(), `skyline-enforce-session-${key}.marker`);
 }
 
+const SESSIONS = [
+  "sess-down",
+  "sess-up1",
+  "sess-up2",
+  "sess-small",
+  "sess-normal",
+  "sess-grep-php",
+  "sess-grep-config",
+  "sess-git-diff",
+  "sess-grep-rli",
+  "sess-cat",
+  "sess-write-out",
+  "sess-write-in",
+  "sess-read-in",
+  "sess-idempotent",
+  "sess-toolsearch",
+];
+
+function cleanMarkers() {
+  for (const s of SESSIONS) {
+    try {
+      fs.rmSync(getReminderMarker(s), { force: true });
+    } catch {}
+    try {
+      fs.rmSync(getLegacyMarker(s), { force: true });
+    } catch {}
+  }
+}
+
 let pyServer = null;
-let testPort = 0; // will be set to UP_PORT once python dummy is ready
+let testPort = 0;
 
 before(async () => {
-  // clean markers used in tests
-  ["sess-down", "sess-up1", "sess-up2", "sess-small", "sess-normal", "sess-grep-php", "sess-grep-config"].forEach((s) => {
-    try { fs.rmSync(getMarker(s), { force: true }); } catch {}
-  });
+  cleanMarkers();
 
-  // Use python dummy server (not node http) on fixed port because node-http servers started
-  // from the test process are unreachable from its node children in this env. Python server
-  // is reachable by curl/node children (verified). Start bg, wait for READY.
   const pyCode = `
 import http.server, socketserver, threading, sys
 class H(http.server.BaseHTTPRequestHandler):
@@ -43,11 +77,12 @@ class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): pass
 port = ${UP_PORT}
 try:
+    socketserver.TCPServer.allow_reuse_address = True
     httpd = socketserver.TCPServer(("127.0.0.1", port), H)
     t = threading.Thread(target=httpd.serve_forever, daemon=True)
     t.start()
     print("READY " + str(port), flush=True)
-    sys.stdin.read()  # block until closed
+    sys.stdin.read()
 except Exception as e:
     print("ERR", e, flush=True)
     sys.exit(1)
@@ -63,7 +98,7 @@ except Exception as e:
       }
     };
     pyServer.stdout.on("data", ondata);
-    pyServer.stderr.on("data", (d) => { /* ignore */ });
+    pyServer.stderr.on("data", () => {});
     pyServer.on("error", reject);
     setTimeout(() => reject(new Error("python dummy server failed to start")), 3000);
   });
@@ -72,12 +107,12 @@ except Exception as e:
 
 after(() => {
   if (pyServer) {
-    try { pyServer.stdin.end(); } catch {}
+    try {
+      pyServer.stdin.end();
+    } catch {}
     pyServer.kill("SIGKILL");
   }
-  ["sess-down", "sess-up1", "sess-up2", "sess-small", "sess-normal", "sess-grep-php", "sess-grep-config"].forEach((s) => {
-    try { fs.rmSync(getMarker(s), { force: true }); } catch {}
-  });
+  cleanMarkers();
 });
 
 function runHook(mode, envExtra = {}, stdinJson = null) {
@@ -96,10 +131,30 @@ function runHook(mode, envExtra = {}, stdinJson = null) {
   return spawnSync(process.execPath, [HOOK, mode], opts);
 }
 
+function assertNoDeadOneLiner(stderr) {
+  assert.ok(
+    !stderr.includes("full guidance shown once per session"),
+    "dead one-liner must be gone"
+  );
+}
+
+function assertHasToolSearch(stderr) {
+  assert.match(stderr, /ToolSearch\("select:mcp__plugin_skyline-claude_skyline__/, "ToolSearch select present");
+}
+
+// --- retained #549 behaviors ----------------------------------------------
+
 test("daemon-down passthrough: notice on stderr, exit 0, no block", () => {
-  const res = runHook("bash", { SKYLINE_DAEMON_PORT: "19999", CLAUDE_SESSION_ID: "sess-down" }, {
-    tool_input: { command: "ls -la /some/long/path/that/is/over/threshold/or/has/pipe|but/for/down/we/force" }
-  });
+  const res = runHook(
+    "bash",
+    { SKYLINE_DAEMON_PORT: "19999", CLAUDE_SESSION_ID: "sess-down" },
+    {
+      tool_input: {
+        command:
+          "ls -la /some/long/path/that/is/over/threshold/or/has/pipe|but/for/down/we/force",
+      },
+    }
+  );
   assert.equal(res.status, 0, `exit code was ${res.status}`);
   assert.match(res.stderr, /skyline daemon unreachable/, "notice emitted");
   assert.ok(res.stderr.includes("allowing native tool"), "notice is the passthrough one");
@@ -107,61 +162,168 @@ test("daemon-down passthrough: notice on stderr, exit 0, no block", () => {
 });
 
 test("sub-threshold silence: short cmd no pipe/redirect => exit 0, no output at all", () => {
-  // even with daemon "up", short no-special chars => silent allow
   const shortCmd = "ls -1";
   assert.ok(shortCmd.length < 120, "test cmd is sub");
-  const res = runHook("bash", { CLAUDE_SESSION_ID: "sess-small" }, {
-    tool_input: { command: shortCmd }
-  });
+  const res = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-small" },
+    { tool_input: { command: shortCmd } }
+  );
   assert.equal(res.status, 0);
   assert.equal(res.stderr, "");
   assert.equal(res.stdout, "");
 });
 
-test("second-denial one-liner (same session)", () => {
-  const sess = "sess-up1";
-  const longish = "cat package.json | head -5"; // has | so not skipped; >119? no but | prevents threshold
-  // first denial: full guidance
-  const r1 = runHook("bash", { CLAUDE_SESSION_ID: sess }, {
-    tool_input: { command: longish }
-  });
+// --- #706: substitute on every denial -------------------------------------
+// Size threshold (#549) still skips short bash with no pipe/redirect. Matrix
+// commands use a pipe or length >=120 so they are actually denied; mapping
+// always uses the first pipeline stage / leading argv.
+
+test("#706 git diff => skyline_git({subcommand:\"diff\"}) on every denial", () => {
+  // pipe defeats size threshold; first stage still maps to git diff
+  const r = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-git-diff" },
+    { tool_input: { command: "git diff | cat" } }
+  );
+  assert.equal(r.status, 2, "denied");
+  assert.match(r.stderr, /skyline_git\(\{subcommand:"diff"\}\)/, "exact substitute");
+  assertHasToolSearch(r.stderr);
+  assertNoDeadOneLiner(r.stderr);
+});
+
+test("#706 git diff long form (>=120 chars): substitute present", () => {
+  const long = "git diff " + "a".repeat(120);
+  const r = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-up2" },
+    { tool_input: { command: long } }
+  );
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /skyline_git\(\{subcommand:"diff"\}\)/);
+  assertHasToolSearch(r.stderr);
+  assertNoDeadOneLiner(r.stderr);
+});
+
+test("#706 grep -rli pattern => skyline_grep({pattern})", () => {
+  // pipe so size threshold does not skip
+  const r = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-grep-rli" },
+    { tool_input: { command: "grep -rli 'Meting' . | head -20" } }
+  );
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /skyline_grep\(\{pattern:"Meting"\}\)/, "pattern mapped");
+  assertHasToolSearch(r.stderr);
+  assertNoDeadOneLiner(r.stderr);
+});
+
+test("#706 cat file => skyline_read({path})", () => {
+  const r = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-cat" },
+    { tool_input: { command: "cat src/App/Models/User.php | head -50" } }
+  );
+  assert.equal(r.status, 2);
+  assert.match(
+    r.stderr,
+    /skyline_read\(\{path:"src\/App\/Models\/User\.php"\}\)/,
+    "path mapped from cat"
+  );
+  assertHasToolSearch(r.stderr);
+  assertNoDeadOneLiner(r.stderr);
+});
+
+test("#706 Read inside tree => deny with skyline_read({path})", () => {
+  // hooks dir is inside the plugins repo tree
+  const inside = path.join(__dirname, "skyline-enforce.js");
+  const r = runHook(
+    "read",
+    { CLAUDE_SESSION_ID: "sess-read-in", CLAUDE_PROJECT_DIR: path.resolve(__dirname, "../../..") },
+    {
+      cwd: path.resolve(__dirname, "../../.."),
+      tool_input: { file_path: inside },
+    }
+  );
+  assert.equal(r.status, 2, "in-tree Read denied");
+  assert.match(r.stderr, /skyline_read\(\{path:/);
+  assert.ok(r.stderr.includes(inside) || r.stderr.includes("skyline_read"), "path or tool present");
+  assertHasToolSearch(r.stderr);
+  assertNoDeadOneLiner(r.stderr);
+});
+
+test("#706 Write outside tree (e.g. ~/.claude) => pass through exit 0", () => {
+  const outside = path.join(os.homedir(), ".claude", "memory", "foo.md");
+  const r = runHook(
+    "edit",
+    { CLAUDE_SESSION_ID: "sess-write-out", CLAUDE_PROJECT_DIR: path.resolve(__dirname, "../../..") },
+    {
+      cwd: path.resolve(__dirname, "../../.."),
+      tool_name: "Write",
+      tool_input: { file_path: outside, content: "x" },
+    }
+  );
+  assert.equal(r.status, 0, "out-of-tree Write must pass");
+  assert.equal(r.stderr, "", "no deny noise for out-of-tree");
+});
+
+test("#706 Write inside tree => deny with skyline_create({path})", () => {
+  const inside = path.join(__dirname, "NEWFILE-enforce-test.txt");
+  const r = runHook(
+    "edit",
+    { CLAUDE_SESSION_ID: "sess-write-in", CLAUDE_PROJECT_DIR: path.resolve(__dirname, "../../..") },
+    {
+      cwd: path.resolve(__dirname, "../../.."),
+      tool_name: "Write",
+      tool_input: { file_path: inside, content: "hello" },
+    }
+  );
+  assert.equal(r.status, 2, "in-tree Write denied");
+  assert.match(r.stderr, /skyline_create\(\{path:/, "Write maps to skyline_create");
+  assertHasToolSearch(r.stderr);
+  assertNoDeadOneLiner(r.stderr);
+});
+
+test("#706 second denial still carries substitute (idempotent, no dead one-liner)", () => {
+  const sess = "sess-idempotent";
+  const cmd = { tool_input: { command: "grep -rli 'foo' . | head -5" } };
+  const r1 = runHook("bash", { CLAUDE_SESSION_ID: sess }, cmd);
+  const r2 = runHook("bash", { CLAUDE_SESSION_ID: sess }, cmd);
   assert.equal(r1.status, 2);
-  assert.match(r1.stderr, /Skyline is active/, "first shows full redirect guidance");
-  assert.ok(!r1.stderr.includes("full guidance shown once"), "first not the one-liner");
-
-  // second in same session: one line
-  const r2 = runHook("bash", { CLAUDE_SESSION_ID: sess }, {
-    tool_input: { command: longish }
-  });
   assert.equal(r2.status, 2);
-  assert.match(r2.stderr, /Skyline redirect \(full guidance shown once per session\)/, "repeat is one-liner");
-  assert.ok(!r2.stderr.includes("Skyline is active"), "repeat does not repeat full");
+  assert.match(r1.stderr, /skyline_grep\(\{pattern:"foo"\}\)/);
+  assert.match(r2.stderr, /skyline_grep\(\{pattern:"foo"\}\)/, "repeat still has substitute");
+  assertHasToolSearch(r1.stderr);
+  assertHasToolSearch(r2.stderr);
+  assertNoDeadOneLiner(r1.stderr);
+  assertNoDeadOneLiner(r2.stderr);
+  // field #11: second may collapse long reminder, but substitute stays
+  assert.ok(!r2.stderr.includes("full guidance shown once"), "no legacy one-liner");
 });
 
-test("normal deny unchanged: non-bash or large, daemon up => full msg + exit 2 (first time)", () => {
-  const sess = "sess-normal";
-  const r = runHook("read", { CLAUDE_SESSION_ID: sess }, {
-    tool_input: { file_path: "/tmp/whatever.txt" }
-  });
-  assert.equal(r.status, 2, "normal deny exits 2");
-  assert.match(r.stderr, /skyline_read replaces Read/, "full message for the mode");
-  assert.match(r.stderr, /ToolSearch/, "includes the switch instruction");
-  assert.ok(!r.stderr.includes("full guidance shown once"), "first time is full");
+test("#706 ToolSearch select string unconditional on read deny", () => {
+  const inside = path.join(__dirname, "skyline-enforce.js");
+  const r = runHook(
+    "read",
+    {
+      CLAUDE_SESSION_ID: "sess-toolsearch",
+      CLAUDE_PROJECT_DIR: path.resolve(__dirname, "../../.."),
+    },
+    {
+      cwd: path.resolve(__dirname, "../../.."),
+      tool_input: { file_path: inside },
+    }
+  );
+  assert.equal(r.status, 2);
+  assertHasToolSearch(r.stderr);
+  assert.match(
+    r.stderr,
+    /mcp__plugin_skyline-claude_skyline__skyline_git/,
+    "CORE menu includes skyline_git"
+  );
 });
 
-test("bash long command without pipe still triggers when >=120 or has special? wait covered by prior", () => {
-  // extra: a bash with no pipe but long enough to not skip
-  const longNoPipe = "echo " + "x".repeat(130);
-  const res = runHook("bash", { CLAUDE_SESSION_ID: "sess-up2" }, {
-    tool_input: { command: longNoPipe }
-  });
-  assert.equal(res.status, 2);
-  assert.match(res.stderr, /skyline.*replace Bash/, "long bash triggers full when first");
-});
-
-// --- R2 steering fold-in tests (skylence-plugins#20) ----------------------
-// All original 5 tests above remain untouched and green. These assert append
-// behavior for symbol-hunt patterns on native Grep only (bash similar but via cmd).
+// --- retained symbol-hunt steering ----------------------------------------
 
 function markerDir(file) {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), "enforce-marker-"));
@@ -169,34 +331,59 @@ function markerDir(file) {
   return d;
 }
 function cleanup(d) {
-  try { fs.rmSync(d, { recursive: true, force: true }); } catch {}
+  try {
+    fs.rmSync(d, { recursive: true, force: true });
+  } catch {}
 }
 
 test("native Grep redirect with `use App\\Models\\User` in a composer cwd: message contains `skyline_symbol_card`", () => {
   const sess = "sess-grep-php";
   const php = markerDir("composer.json");
   try {
-    const r = runHook("grep", { CLAUDE_SESSION_ID: sess }, {
-      cwd: php,
-      tool_input: { pattern: "use App\\Models\\User" }
-    });
+    const r = runHook(
+      "grep",
+      { CLAUDE_SESSION_ID: sess },
+      {
+        cwd: php,
+        tool_input: { pattern: "use App\\Models\\User" },
+      }
+    );
     assert.equal(r.status, 2, "still denies (redirects)");
-    assert.match(r.stderr, /skyline_grep\/skyline_sgrep replace Grep/, "base grep redirect present");
-    assert.match(r.stderr, /skyline_symbol_card\(path, line, symbol\)/, "steering sentence appended for php symbol hunt");
-    assert.ok(!r.stderr.includes("full guidance shown once"), "first is full");
+    assert.match(r.stderr, /skyline_grep\(\{pattern:/, "substitute present");
+    assert.match(
+      r.stderr,
+      /skyline_symbol_card/,
+      "steering or PHP note mentions symbol_card"
+    );
+    assertNoDeadOneLiner(r.stderr);
   } finally {
     cleanup(php);
   }
 });
 
-test("native Grep redirect with a config-key pattern: message unchanged, no steering sentence", () => {
+test("native Grep redirect with a config-key pattern: base substitute, no Symbol hunt sentence", () => {
   const sess = "sess-grep-config";
-  // config-key like pattern that is NOT treated as symbol hunt (or suppressed); here a spaced literal
-  const r = runHook("grep", { CLAUDE_SESSION_ID: sess }, {
-    tool_input: { pattern: "some config key with spaces" }
-  });
+  const r = runHook(
+    "grep",
+    { CLAUDE_SESSION_ID: sess },
+    {
+      tool_input: { pattern: "some config key with spaces" },
+    }
+  );
   assert.equal(r.status, 2);
-  assert.match(r.stderr, /skyline_grep\/skyline_sgrep replace Grep/, "base present");
+  assert.match(r.stderr, /skyline_grep\(\{pattern:"some config key with spaces"\}\)/);
   assert.ok(!r.stderr.includes("Symbol hunt?"), "no steering sentence for non-symbol pattern");
-  assert.ok(!r.stderr.includes("skyline_symbol_card"), "no php card mention");
+  assertHasToolSearch(r.stderr);
+});
+
+test("bash long command without pipe still triggers when >=120", () => {
+  const longNoPipe = "echo " + "x".repeat(130);
+  const res = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-normal" },
+    { tool_input: { command: longNoPipe } }
+  );
+  assert.equal(res.status, 2);
+  assert.match(res.stderr, /skyline_run\(\{command:/, "long bash maps to skyline_run");
+  assertHasToolSearch(res.stderr);
 });
