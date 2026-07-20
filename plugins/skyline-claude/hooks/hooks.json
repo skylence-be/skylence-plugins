@@ -77,6 +77,16 @@
             "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/skyline-primer.js"]
           }
         ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/skyline-regate.js"]
+          }
+        ]
       }
     ]
   }
