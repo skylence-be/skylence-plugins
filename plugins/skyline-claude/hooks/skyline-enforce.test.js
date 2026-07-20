@@ -235,9 +235,10 @@ test("#706 cat file => skyline_read({path})", () => {
   assert.equal(r.status, 2);
   assert.match(
     r.stderr,
-    /skyline_read\(\{path:"src\/App\/Models\/User\.php"\}\)/,
-    "path mapped from cat"
+    /skyline_read\(\{path:"\/[^"]+src\/App\/Models\/User\.php"\}\)/,
+    "#415 F2: cat maps to skyline_read with an ABSOLUTE path"
   );
+  assert.ok(!r.stderr.includes('path:"src/'), "no relative path in cat remediation");
   assertHasToolSearch(r.stderr);
   assertNoDeadOneLiner(r.stderr);
 });

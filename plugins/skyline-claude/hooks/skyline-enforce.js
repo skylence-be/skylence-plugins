@@ -342,7 +342,9 @@ function mapBashCommand(command, root) {
     prog === "bat"
   ) {
     const file = firstNonFlag(rest, 0);
-    if (file) return fmtCall("skyline_read", { path: unquote(file) });
+    // #415 F2: same absolute-path treatment as ls/find below; a relative
+    // path resolves against the daemon's cwd (/) and the tool rejects it.
+    if (file) return fmtCall("skyline_read", { path: resolveAbs(unquote(file), root) });
     return "skyline_read({path:\"…\"})";
   }
 

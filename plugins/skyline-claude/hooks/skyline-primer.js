@@ -8,11 +8,40 @@
 
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("child_process");
 
 function hasMarker(cwd, name) {
   if (!cwd) return false;
   try {
     return fs.existsSync(path.join(cwd, name));
+  } catch (_e) {
+    return false;
+  }
+}
+
+// #415 F1: a single existsSync at the top dir fabricates "no git" for
+// repo-SUBDIR sessions. Mirror skyline-enforce.js projectRoot(): walk up for
+// .git (dir OR worktree file), then a rev-parse fallback for exotic layouts.
+function hasGitAncestor(dir) {
+  if (!dir) return false;
+  try {
+    let d = path.resolve(dir);
+    for (let i = 0; i < 64; i++) {
+      if (fs.existsSync(path.join(d, ".git"))) return true;
+      const parent = path.dirname(d);
+      if (parent === d) break;
+      d = parent;
+    }
+  } catch (_e) {
+    /* fall through to rev-parse */
+  }
+  try {
+    const r = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], {
+      cwd: path.resolve(dir),
+      encoding: "utf8",
+      timeout: 500,
+    });
+    return r.status === 0 && String(r.stdout).trim() === "true";
   } catch (_e) {
     return false;
   }
@@ -84,7 +113,10 @@ process.stdin.on("end", () => {
   // payload (malformed stdin still exits 0 silently above).
   const parts = [ABS_PATH_FACT, FOCUS_LICENSE];
   const projectDir = process.env.CLAUDE_PROJECT_DIR || cwd;
-  if (!hasMarker(projectDir, ".git")) {
+  // #415 F1: assert git-lessness only for a KNOWN location with no .git up
+  // the whole ancestor chain; an unknown location says nothing rather than
+  // fabricating an environment fact.
+  if (projectDir && !hasGitAncestor(projectDir)) {
     parts.push(GITLESS_FACT);
   }
   if (context) {

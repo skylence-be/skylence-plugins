@@ -191,3 +191,27 @@ test("#411 git workspace: no-git fact suppressed when .git is present", () => {
     cleanup(repo);
   }
 });
+
+test("#415 F1: repo SUBDIR (git at ancestor) suppresses the no-git fact", () => {
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), "primer-sub-"));
+  const deep = path.join(repo, "src", "deep");
+  fs.mkdirSync(path.join(repo, ".git"));
+  fs.mkdirSync(deep, { recursive: true });
+  try {
+    const res = run({ cwd: deep }, { CLAUDE_PROJECT_DIR: deep });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(ctx.startsWith(ABS_PREFIX), "env facts still front-loaded");
+    assert.ok(!ctx.includes(GITLESS_LINE), "ancestor .git suppresses the no-git fact");
+  } finally {
+    cleanup(repo);
+  }
+});
+
+test("#415 F1: unknown location (no CLAUDE_PROJECT_DIR, no cwd) says nothing about git", () => {
+  const res = run({}, { CLAUDE_PROJECT_DIR: "" });
+  assert.equal(res.status, 0);
+  const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+  assert.ok(ctx.startsWith(ABS_PREFIX), "orientation still emitted");
+  assert.ok(!ctx.includes(GITLESS_LINE), "no fabricated no-git fact for unknown location");
+});
