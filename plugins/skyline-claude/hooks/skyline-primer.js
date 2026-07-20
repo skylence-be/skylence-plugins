@@ -8,11 +8,40 @@
 
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("child_process");
 
 function hasMarker(cwd, name) {
   if (!cwd) return false;
   try {
     return fs.existsSync(path.join(cwd, name));
+  } catch (_e) {
+    return false;
+  }
+}
+
+// #415 F1: a single existsSync at the top dir fabricates "no git" for
+// repo-SUBDIR sessions. Mirror skyline-enforce.js projectRoot(): walk up for
+// .git (dir OR worktree file), then a rev-parse fallback for exotic layouts.
+function hasGitAncestor(dir) {
+  if (!dir) return false;
+  try {
+    let d = path.resolve(dir);
+    for (let i = 0; i < 64; i++) {
+      if (fs.existsSync(path.join(d, ".git"))) return true;
+      const parent = path.dirname(d);
+      if (parent === d) break;
+      d = parent;
+    }
+  } catch (_e) {
+    /* fall through to rev-parse */
+  }
+  try {
+    const r = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], {
+      cwd: path.resolve(dir),
+      encoding: "utf8",
+      timeout: 500,
+    });
+    return r.status === 0 && String(r.stdout).trim() === "true";
   } catch (_e) {
     return false;
   }
@@ -37,6 +66,24 @@ function hasLoreBank() {
 const LORE_CONTEXT =
   "Skyline hosts the skylore memory bank. Call skyline_lore_recall BEFORE re-deriving any \"why is it done this way / did we already decide X / what broke last time\" question: it is ranked (BM25), deterministic, costs no LLM call, and every hit cites its provenance. Keep durable decisions and gotchas with skyline_lore_mark. Route by tier: skyline_lore_* for cross-project decisions, preferences and gotchas that live in no file; skyline_memory_* for per-project markdown notes; skybox/LSP for code structure, which you should never memorize because a parser re-derives it.";
 
+// #411: front-load the one environment fact that silently breaks every skyline
+// call when missed. The daemon's cwd is /, so a relative path (a bare ".") is
+// resolved against / and rejected. Always emitted.
+const ABS_PATH_FACT =
+  "The skyline daemon runs with cwd /; pass absolute paths to every skyline tool (never a bare \".\"). A relative path resolves against / and the tool rejects or misresolves it.";
+
+// #411 scope (e): license the agent to ignore harness task-tracker nags on
+// linear jobs. Always emitted (must appear in every rendered sample).
+const FOCUS_LICENSE =
+  "Harness task-tracker reminders are noise on linear single-feature jobs " +
+  String.fromCharCode(0x2014) +
+  " ignore them unless multi-step tracking genuinely helps you.";
+
+// #411: a git-less workspace silently loses pint --dirty, acuity semantic
+// freshness verification, and commit checkpoints. Emitted only when no .git.
+const GITLESS_FACT =
+  "No git in this workspace: pint --dirty is a no-op, acuity semantic freshness will read unverified (vendor leg: binary-skyline#719), and there are no commit checkpoints.";
+
 let buf = "";
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", (d) => (buf += d));
@@ -60,9 +107,22 @@ process.stdin.on("end", () => {
     context = context ? context + "\n\n" + LORE_CONTEXT : LORE_CONTEXT;
   }
 
-  if (!context) {
-    process.exit(0); // no marker, no bank => no output
+  // #411 + scope (e): ONE orientation message. Environment facts front-loaded,
+  // then the (unchanged) language + skylore steer assembled above. ABS_PATH_FACT
+  // and FOCUS_LICENSE are unconditional, so there is always output on a valid
+  // payload (malformed stdin still exits 0 silently above).
+  const parts = [ABS_PATH_FACT, FOCUS_LICENSE];
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || cwd;
+  // #415 F1: assert git-lessness only for a KNOWN location with no .git up
+  // the whole ancestor chain; an unknown location says nothing rather than
+  // fabricating an environment fact.
+  if (projectDir && !hasGitAncestor(projectDir)) {
+    parts.push(GITLESS_FACT);
   }
+  if (context) {
+    parts.push(context);
+  }
+  context = parts.join("\n\n");
 
   process.stdout.write(
     JSON.stringify({

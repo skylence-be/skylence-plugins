@@ -88,6 +88,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/skyline-deposit.js"]
+          }
+        ]
+      }
     ]
   }
 }

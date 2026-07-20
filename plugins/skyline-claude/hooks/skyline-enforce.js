@@ -262,7 +262,7 @@ function runFallback(raw) {
 }
 
 /** Map a Bash command string to a skyline substitute call string. */
-function mapBashCommand(command) {
+function mapBashCommand(command, root) {
   const raw = String(command || "").trim();
   if (!raw) {
     return runFallback(raw);
@@ -342,7 +342,9 @@ function mapBashCommand(command) {
     prog === "bat"
   ) {
     const file = firstNonFlag(rest, 0);
-    if (file) return fmtCall("skyline_read", { path: unquote(file) });
+    // #415 F2: same absolute-path treatment as ls/find below; a relative
+    // path resolves against the daemon's cwd (/) and the tool rejects it.
+    if (file) return fmtCall("skyline_read", { path: resolveAbs(unquote(file), root) });
     return "skyline_read({path:\"…\"})";
   }
 
@@ -356,13 +358,13 @@ function mapBashCommand(command) {
         break;
       }
     }
-    if (name) return fmtCall("skyline_find", { glob: name, path: unquote(target) });
-    return fmtCall("skyline_tree", { path: unquote(target) });
+    if (name) return fmtCall("skyline_find", { glob: name, path: resolveAbs(unquote(target), root) });
+    return fmtCall("skyline_tree", { path: resolveAbs(unquote(target), root) });
   }
 
   if (prog === "ls") {
     const p = firstNonFlag(rest, 0) || ".";
-    return fmtCall("skyline_tree", { path: unquote(p) });
+    return fmtCall("skyline_tree", { path: resolveAbs(unquote(p), root) });
   }
 
   if (prog === "sed" || prog === "awk" || prog === "perl") {
@@ -373,7 +375,7 @@ function mapBashCommand(command) {
   return runFallback(raw);
 }
 
-function mapNativeSubstitute(mode, ti, toolName) {
+function mapNativeSubstitute(mode, ti, toolName, root) {
   if (mode === "read") {
     const p = ti.file_path || ti.path || ti.filePath;
     if (p) return fmtCall("skyline_read", { path: String(p) });
@@ -414,7 +416,7 @@ function mapNativeSubstitute(mode, ti, toolName) {
     return "skyline_find({glob:\"…\"})";
   }
   if (mode === "bash") {
-    return mapBashCommand(ti.command || "");
+    return mapBashCommand(ti.command || "", root);
   }
   return null;
 }
@@ -498,7 +500,7 @@ async function main() {
       pattern = m[1] || m[2] || "";
     } else {
       // fall back to token extract
-      const mapped = mapBashCommand(command);
+      const mapped = mapBashCommand(command, root);
       const pm = mapped && mapped.match(/pattern:"((?:\\.|[^"\\])*)"/);
       if (pm) pattern = pm[1].replace(/\\"/g, '"');
     }
@@ -539,7 +541,7 @@ async function main() {
   }
 
   // Exact substitute — ALWAYS present on deny (#706 / field #9).
-  const substitute = mapNativeSubstitute(MODE, ti, toolName);
+  const substitute = mapNativeSubstitute(MODE, ti, toolName, root);
   const nativeLabel =
     MODE === "bash"
       ? `Bash \`${command.length > 80 ? command.slice(0, 77) + "..." : command}\``
