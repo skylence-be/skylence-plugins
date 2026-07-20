@@ -134,10 +134,26 @@ function resolveAbs(filePath, root) {
   return path.resolve(root || process.cwd(), s);
 }
 
+// Canonicalize before compare: symlinks, /tmp vs /private/tmp divergence, and
+// case variants otherwise defeat the prefix check. A not-yet-created target
+// canonicalizes via its parent dir; fail-open to the resolved spelling on any
+// fs error.
+function canonical(p) {
+  try {
+    return fs.realpathSync(p);
+  } catch (_e) {
+    try {
+      return path.join(fs.realpathSync(path.dirname(p)), path.basename(p));
+    } catch (_e2) {
+      return p;
+    }
+  }
+}
+
 function isInsideTree(absPath, root) {
   if (!absPath || !root) return true; // unknown path => enforce (fail closed for in-repo tools)
-  const a = path.resolve(absPath);
-  const r = path.resolve(root);
+  const a = canonical(path.resolve(absPath));
+  const r = canonical(path.resolve(root));
   if (process.platform === "win32") {
     const al = a.toLowerCase();
     const rl = r.toLowerCase();
@@ -205,6 +221,17 @@ function shellTokens(command) {
   return out;
 }
 
+// Flags whose VALUE is the next token; the value must never be taken as a
+// pattern or path.
+const VALUE_FLAGS = new Set([
+  "-e", "--regexp",
+  "-f", "--file",
+  "-m", "--max-count",
+  "--include", "--exclude", "--exclude-dir",
+  "-A", "-B", "-C",
+  "-g", "-t", "--type", "--glob",
+]);
+
 function firstNonFlag(tokens, startIdx) {
   for (let i = startIdx; i < tokens.length; i++) {
     const t = tokens[i];
@@ -215,27 +242,10 @@ function firstNonFlag(tokens, startIdx) {
     if (t.startsWith("-")) {
       // -e PATTERN / -f FILE style with attached or next-arg pattern
       if (/^-[^-]*[efm]/.test(t) && t.length > 2 && !t.includes("=")) {
-        // e.g. -ePATTERN already attached after short flags — rare; skip attach form
+        // e.g. -ePATTERN already attached after short flags (rare); skip attach form
       }
       // flags that take a value as next token
-      if (
-        t === "-e" ||
-        t === "--regexp" ||
-        t === "-f" ||
-        t === "--file" ||
-        t === "-m" ||
-        t === "--max-count" ||
-        t === "--include" ||
-        t === "--exclude" ||
-        t === "--exclude-dir" ||
-        t === "-A" ||
-        t === "-B" ||
-        t === "-C" ||
-        t === "-g" ||
-        t === "-t" ||
-        t === "--type" ||
-        t === "--glob"
-      ) {
+      if (VALUE_FLAGS.has(t)) {
         i += 1;
         continue;
       }
@@ -246,22 +256,27 @@ function firstNonFlag(tokens, startIdx) {
   return null;
 }
 
+/** skyline_run is argv-only (no shell): wrap the original line in sh -c. */
+function runFallback(raw) {
+  return fmtCall("skyline_run", { argv: ["sh", "-c", raw] });
+}
+
 /** Map a Bash command string to a skyline substitute call string. */
 function mapBashCommand(command) {
   const raw = String(command || "").trim();
   if (!raw) {
-    return fmtCall("skyline_run", { command: raw });
+    return runFallback(raw);
   }
   // Use the first pipeline stage for mapping (left of | ; && ||).
   const head = raw.split(/(?:&&|\|\||[|;])/)[0].trim();
   const tokens = shellTokens(head);
   if (tokens.length === 0) {
-    return fmtCall("skyline_run", { command: raw });
+    return runFallback(raw);
   }
   // skip env assignments: FOO=bar cmd
   let i = 0;
   while (i < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[i])) i++;
-  if (i >= tokens.length) return fmtCall("skyline_run", { command: raw });
+  if (i >= tokens.length) return runFallback(raw);
   // skip sudo / env / command / nice
   while (
     i < tokens.length &&
@@ -271,7 +286,7 @@ function mapBashCommand(command) {
     // skip sudo flags
     while (i < tokens.length && tokens[i].startsWith("-")) i++;
   }
-  if (i >= tokens.length) return fmtCall("skyline_run", { command: raw });
+  if (i >= tokens.length) return runFallback(raw);
 
   const prog = path.basename(tokens[i]);
   const rest = tokens.slice(i + 1);
@@ -289,7 +304,8 @@ function mapBashCommand(command) {
   }
 
   if (prog === "grep" || prog === "egrep" || prog === "fgrep" || prog === "rg") {
-    // pattern: -e X, or first non-flag (after common flags like -rli)
+    // pattern: -e X, or first non-flag (after common flags like -rli);
+    // value-taking flags skip their next token so `-A 3` never yields "3"
     let pattern = null;
     for (let j = 0; j < rest.length; j++) {
       const t = rest[j];
@@ -300,6 +316,10 @@ function mapBashCommand(command) {
       if (t.startsWith("-e") && t.length > 2) {
         pattern = t.slice(2);
         break;
+      }
+      if (VALUE_FLAGS.has(t)) {
+        j += 1;
+        continue;
       }
       if (t.startsWith("-") && t !== "--") continue;
       if (t === "--") {
@@ -336,7 +356,7 @@ function mapBashCommand(command) {
         break;
       }
     }
-    if (name) return fmtCall("skyline_find", { pattern: name, path: unquote(target) });
+    if (name) return fmtCall("skyline_find", { glob: name, path: unquote(target) });
     return fmtCall("skyline_tree", { path: unquote(target) });
   }
 
@@ -346,11 +366,11 @@ function mapBashCommand(command) {
   }
 
   if (prog === "sed" || prog === "awk" || prog === "perl") {
-    return fmtCall("skyline_run", { command: raw });
+    return runFallback(raw);
   }
 
   // default: skyline_run with the original command
-  return fmtCall("skyline_run", { command: raw });
+  return runFallback(raw);
 }
 
 function mapNativeSubstitute(mode, ti, toolName) {
@@ -366,9 +386,16 @@ function mapNativeSubstitute(mode, ti, toolName) {
     const isWrite =
       name === "write" ||
       (ti.content != null && ti.old_string == null && ti.oldString == null);
-    const tool = isWrite ? "skyline_create" : "skyline_edit";
-    if (p) return fmtCall(tool, { path: String(p) });
-    return `${tool}({path:"…"})`;
+    if (isWrite) {
+      if (p) return fmtCall("skyline_create", { path: String(p) });
+      return "skyline_create({path:\"…\"})";
+    }
+    // skyline_edit takes a ¶path#TAG-anchored patch, not a path: the honest
+    // substitute is the read-then-edit flow.
+    const read = p
+      ? fmtCall("skyline_read", { path: String(p) })
+      : "skyline_read({path:\"…\"})";
+    return `${read} then skyline_edit with the returned ¶path#TAG anchor`;
   }
   if (mode === "grep") {
     const pattern = ti.pattern == null ? "" : String(ti.pattern);
@@ -380,11 +407,11 @@ function mapNativeSubstitute(mode, ti, toolName) {
   if (mode === "glob") {
     const pattern = ti.pattern == null ? String(ti.glob || "") : String(ti.pattern);
     const args = {};
-    if (pattern) args.pattern = pattern;
+    if (pattern) args.glob = pattern;
     const p = ti.path || ti.file_path;
     if (p) args.path = String(p);
     if (Object.keys(args).length) return fmtCall("skyline_find", args);
-    return "skyline_find({pattern:\"…\"})";
+    return "skyline_find({glob:\"…\"})";
   }
   if (mode === "bash") {
     return mapBashCommand(ti.command || "");
@@ -531,17 +558,20 @@ async function main() {
   // ToolSearch select string — unconditional (#706 acceptance b).
   outMsg += " " + toolSearchLine(composer);
 
-  // Field #11 plugin-side: long symbol-hunt / orient reminder only on first fire.
-  // Subsequent denials keep substitute + ToolSearch (never the dead one-liner).
-  const first = isFirstReminder();
-  if (first && (MODE === "grep" || MODE === "bash") && isSymHunt) {
-    const steer =
-      huntLang === "php"
-        ? " Symbol hunt? skyline_symbol_card(path, line, symbol) answers declaration + true callers + resolution in one call; skyline_definition / skyline_references also work. Text grep over-counts comments/strings."
-        : " Symbol hunt? Prefer skyline_definition / skyline_references / skyline_implementation over text grep.";
-    outMsg += steer;
-  } else if (!first && (MODE === "grep" || MODE === "bash") && isSymHunt) {
-    outMsg += " (symbol-hunt reminder omitted; already shown this session)";
+  // Field #11 plugin-side: long symbol-hunt / orient reminder only on first
+  // occurrence. The marker burns only when a symbol-hunt denial actually
+  // fires; any other denial leaves it untouched. Subsequent denials keep
+  // substitute + ToolSearch (never the dead one-liner).
+  if ((MODE === "grep" || MODE === "bash") && isSymHunt) {
+    if (isFirstReminder()) {
+      const steer =
+        huntLang === "php"
+          ? " Symbol hunt? skyline_symbol_card(path, line, symbol) answers declaration + true callers + resolution in one call; skyline_definition / skyline_references also work. Text grep over-counts comments/strings."
+          : " Symbol hunt? Prefer skyline_definition / skyline_references / skyline_implementation over text grep.";
+      outMsg += steer;
+    } else {
+      outMsg += " (symbol-hunt reminder omitted; already shown this session)";
+    }
   }
 
   process.stderr.write(outMsg + "\n");

@@ -48,6 +48,13 @@ const SESSIONS = [
   "sess-read-in",
   "sess-idempotent",
   "sess-toolsearch",
+  "sess-compound",
+  "sess-env-unset",
+  "sess-find-name",
+  "sess-glob-mode",
+  "sess-edit-in",
+  "sess-marker-order",
+  "sess-grep-flagval",
 ];
 
 function cleanMarkers() {
@@ -384,6 +391,139 @@ test("bash long command without pipe still triggers when >=120", () => {
     { tool_input: { command: longNoPipe } }
   );
   assert.equal(res.status, 2);
-  assert.match(res.stderr, /skyline_run\(\{command:/, "long bash maps to skyline_run");
+  assert.match(
+    res.stderr,
+    /skyline_run\(\{argv:\["sh","-c","echo x/,
+    "long bash maps to argv-shape skyline_run"
+  );
   assertHasToolSearch(res.stderr);
+});
+
+// --- bounce cycle 1 (todo 401): schema-valid substitutes + scoping ---------
+
+test("#706 echo-headed `;`-compound => argv-shape skyline_run substitute", () => {
+  const r = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-compound" },
+    { tool_input: { command: "echo prep; git diff boost.json | head -20" } }
+  );
+  assert.equal(r.status, 2);
+  assert.match(
+    r.stderr,
+    /skyline_run\(\{argv:\["sh","-c","echo prep; git diff boost\.json \| head -20"\]\}\)/,
+    "whole line wrapped in sh -c argv"
+  );
+  assert.ok(!r.stderr.includes("skyline_run({command:"), "no schema-invalid command param");
+  assertHasToolSearch(r.stderr);
+  assertNoDeadOneLiner(r.stderr);
+});
+
+test("#706 CLAUDE_PROJECT_DIR unset: .git walk scopes, in-tree Read still denied", () => {
+  const inside = path.join(__dirname, "skyline-enforce.js");
+  const r = runHook(
+    "read",
+    {
+      CLAUDE_SESSION_ID: "sess-env-unset",
+      // undefined values are omitted from the child env (Node >= 12)
+      CLAUDE_PROJECT_DIR: undefined,
+      SKYLINE_PROJECT_ROOT: undefined,
+    },
+    { cwd: __dirname, tool_input: { file_path: inside } }
+  );
+  assert.equal(r.status, 2, "env-unset in-tree Read denied via .git walk");
+  assert.match(r.stderr, /skyline_read\(\{path:/);
+  assertHasToolSearch(r.stderr);
+});
+
+test("#706 find -name => skyline_find({glob,path})", () => {
+  const r = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-find-name" },
+    { tool_input: { command: "find . -name '*.php' | head -50" } }
+  );
+  assert.equal(r.status, 2);
+  assert.match(
+    r.stderr,
+    /skyline_find\(\{glob:"\*\.php", path:"\."\}\)/,
+    "find -name maps to the real glob param"
+  );
+  assert.ok(!r.stderr.includes("skyline_find({pattern:"), "no schema-invalid pattern param");
+});
+
+test("#706 Glob => skyline_find({glob})", () => {
+  const r = runHook(
+    "glob",
+    { CLAUDE_SESSION_ID: "sess-glob-mode" },
+    { tool_input: { pattern: "**/*.js" } }
+  );
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /skyline_find\(\{glob:"\*\*\/\*\.js"\}\)/, "Glob maps to glob param");
+  assert.ok(!r.stderr.includes("skyline_find({pattern:"), "no schema-invalid pattern param");
+});
+
+test("#706 Edit inside tree => read-then-edit flow (skyline_edit has no path param)", () => {
+  const inside = path.join(__dirname, "skyline-enforce.js");
+  const r = runHook(
+    "edit",
+    {
+      CLAUDE_SESSION_ID: "sess-edit-in",
+      CLAUDE_PROJECT_DIR: path.resolve(__dirname, "../../.."),
+    },
+    {
+      cwd: path.resolve(__dirname, "../../.."),
+      tool_name: "Edit",
+      tool_input: { file_path: inside, old_string: "a", new_string: "b" },
+    }
+  );
+  assert.equal(r.status, 2, "in-tree Edit denied");
+  assert.match(r.stderr, /skyline_read\(\{path:/, "flow starts with skyline_read");
+  assert.match(r.stderr, /then skyline_edit with the returned ¶path#TAG anchor/, "honest flow");
+  assert.ok(!r.stderr.includes("skyline_edit({path:"), "no schema-invalid path param");
+});
+
+test("field #11: non-symbol denial does not burn the steer marker", () => {
+  const sess = "sess-marker-order";
+  const r1 = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: sess },
+    { tool_input: { command: "git diff | cat" } }
+  );
+  assert.equal(r1.status, 2);
+  assert.ok(!r1.stderr.includes("Symbol hunt?"), "git diff is not a symbol hunt");
+  const r2 = runHook(
+    "grep",
+    { CLAUDE_SESSION_ID: sess },
+    { tool_input: { pattern: "use App\\Models\\User" } }
+  );
+  assert.equal(r2.status, 2);
+  assert.match(r2.stderr, /Symbol hunt\?/, "first symbol-hunt denial still steers");
+  assert.ok(
+    !r2.stderr.includes("reminder omitted"),
+    "marker not burned by earlier non-symbol denial"
+  );
+  const r3 = runHook(
+    "grep",
+    { CLAUDE_SESSION_ID: sess },
+    { tool_input: { pattern: "use App\\Models\\User" } }
+  );
+  assert.equal(r3.status, 2);
+  assert.match(r3.stderr, /reminder omitted/, "second symbol-hunt denial collapses");
+  assert.match(r3.stderr, /skyline_grep\(\{pattern:/, "substitute never drops");
+});
+
+test("grep flag values are not taken as the pattern", () => {
+  const r1 = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-grep-flagval" },
+    { tool_input: { command: "grep -A 3 foo . | head" } }
+  );
+  assert.equal(r1.status, 2);
+  assert.match(r1.stderr, /skyline_grep\(\{pattern:"foo"\}\)/, "-A value skipped");
+  const r2 = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-grep-flagval" },
+    { tool_input: { command: "grep --exclude-dir node_modules foo . | head" } }
+  );
+  assert.equal(r2.status, 2);
+  assert.match(r2.stderr, /skyline_grep\(\{pattern:"foo"\}\)/, "--exclude-dir value skipped");
 });
