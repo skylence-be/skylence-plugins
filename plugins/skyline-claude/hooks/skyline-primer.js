@@ -37,6 +37,24 @@ function hasLoreBank() {
 const LORE_CONTEXT =
   "Skyline hosts the skylore memory bank. Call skyline_lore_recall BEFORE re-deriving any \"why is it done this way / did we already decide X / what broke last time\" question: it is ranked (BM25), deterministic, costs no LLM call, and every hit cites its provenance. Keep durable decisions and gotchas with skyline_lore_mark. Route by tier: skyline_lore_* for cross-project decisions, preferences and gotchas that live in no file; skyline_memory_* for per-project markdown notes; skybox/LSP for code structure, which you should never memorize because a parser re-derives it.";
 
+// #411: front-load the one environment fact that silently breaks every skyline
+// call when missed. The daemon's cwd is /, so a relative path (a bare ".") is
+// resolved against / and rejected. Always emitted.
+const ABS_PATH_FACT =
+  "The skyline daemon runs with cwd /; pass absolute paths to every skyline tool (never a bare \".\"). A relative path resolves against / and the tool rejects or misresolves it.";
+
+// #411 scope (e): license the agent to ignore harness task-tracker nags on
+// linear jobs. Always emitted (must appear in every rendered sample).
+const FOCUS_LICENSE =
+  "Harness task-tracker reminders are noise on linear single-feature jobs " +
+  String.fromCharCode(0x2014) +
+  " ignore them unless multi-step tracking genuinely helps you.";
+
+// #411: a git-less workspace silently loses pint --dirty, acuity semantic
+// freshness verification, and commit checkpoints. Emitted only when no .git.
+const GITLESS_FACT =
+  "No git in this workspace: pint --dirty is a no-op, acuity semantic freshness will read unverified (vendor leg: binary-skyline#719), and there are no commit checkpoints.";
+
 let buf = "";
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", (d) => (buf += d));
@@ -60,9 +78,19 @@ process.stdin.on("end", () => {
     context = context ? context + "\n\n" + LORE_CONTEXT : LORE_CONTEXT;
   }
 
-  if (!context) {
-    process.exit(0); // no marker, no bank => no output
+  // #411 + scope (e): ONE orientation message. Environment facts front-loaded,
+  // then the (unchanged) language + skylore steer assembled above. ABS_PATH_FACT
+  // and FOCUS_LICENSE are unconditional, so there is always output on a valid
+  // payload (malformed stdin still exits 0 silently above).
+  const parts = [ABS_PATH_FACT, FOCUS_LICENSE];
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || cwd;
+  if (!hasMarker(projectDir, ".git")) {
+    parts.push(GITLESS_FACT);
   }
+  if (context) {
+    parts.push(context);
+  }
+  context = parts.join("\n\n");
 
   process.stdout.write(
     JSON.stringify({

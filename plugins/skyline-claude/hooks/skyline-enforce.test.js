@@ -55,6 +55,7 @@ const SESSIONS = [
   "sess-edit-in",
   "sess-marker-order",
   "sess-grep-flagval",
+  "sess-ls-abs",
 ];
 
 function cleanMarkers() {
@@ -444,10 +445,26 @@ test("#706 find -name => skyline_find({glob,path})", () => {
   assert.equal(r.status, 2);
   assert.match(
     r.stderr,
-    /skyline_find\(\{glob:"\*\.php", path:"\."\}\)/,
-    "find -name maps to the real glob param"
+    /skyline_find\(\{glob:"\*\.php", path:"\/[^"]+"\}\)/,
+    "find -name keeps the glob param and renders an ABSOLUTE path (never relative '.')"
   );
+  assert.ok(!r.stderr.includes('path:"."'), "#411 no relative '.' path in remediation");
   assert.ok(!r.stderr.includes("skyline_find({pattern:"), "no schema-invalid pattern param");
+});
+
+test("#411 ls remediation renders an absolute path, never a relative '.'", () => {
+  const r = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-ls-abs", CLAUDE_PROJECT_DIR: path.resolve(__dirname, "../../..") },
+    { tool_input: { command: "ls -la | head -20" } }
+  );
+  assert.equal(r.status, 2);
+  assert.ok(!r.stderr.includes('path:"."'), "no relative '.' path emitted");
+  assert.match(
+    r.stderr,
+    /skyline_tree\(\{path:"\/[^"]+"\}\)/,
+    "bare ls maps to skyline_tree with an ABSOLUTE path"
+  );
 });
 
 test("#706 Glob => skyline_find({glob})", () => {

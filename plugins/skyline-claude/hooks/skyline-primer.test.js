@@ -48,6 +48,12 @@ const PHP_CTX = "Skyline semantic PHP tools are active here. For symbol question
 
 const RUST_CTX = "Skyline semantic tools active. For symbol questions, don't conclude from grep counts: run skyline_definition, skyline_references, or skyline_implementation and reconcile any unproven hit by checking its receiver; read the tool's freshness before assuming degradation.";
 
+// Shared substrings for the #411 orientation contract (env facts front-loaded).
+// FOCUS_LINE stops before the em dash on purpose: keeps this source em-dash-free.
+const ABS_PREFIX = "The skyline daemon runs with cwd /";
+const FOCUS_LINE = "Harness task-tracker reminders are noise on linear single-feature jobs";
+const GITLESS_LINE = "No git in this workspace";
+
 test("php marker gives the exact php context", () => {
   const php = markerDir("composer.json");
   try {
@@ -57,7 +63,9 @@ test("php marker gives the exact php context", () => {
     assert.ok(s, "emitted output");
     const parsed = JSON.parse(s);
     assert.equal(parsed.hookSpecificOutput.hookEventName, "SessionStart");
-    assert.equal(parsed.hookSpecificOutput.additionalContext, PHP_CTX);
+    const ctx = parsed.hookSpecificOutput.additionalContext;
+    assert.ok(ctx.startsWith(ABS_PREFIX), "env facts front-loaded");
+    assert.ok(ctx.includes(PHP_CTX), "php steer kept verbatim");
     // no permissionDecision per spec
     assert.ok(!("permissionDecision" in parsed.hookSpecificOutput));
   } finally {
@@ -74,18 +82,24 @@ test("rust marker gives the generic (rust-go) context line", () => {
     assert.ok(s);
     const parsed = JSON.parse(s);
     assert.equal(parsed.hookSpecificOutput.hookEventName, "SessionStart");
-    assert.equal(parsed.hookSpecificOutput.additionalContext, RUST_CTX);
+    const ctx = parsed.hookSpecificOutput.additionalContext;
+    assert.ok(ctx.startsWith(ABS_PREFIX), "env facts front-loaded");
+    assert.ok(ctx.includes(RUST_CTX), "rust/go steer kept verbatim");
   } finally {
     cleanup(rust);
   }
 });
 
-test("no marker gives empty stdout", () => {
+test("no marker, no bank: still emits the always-on env facts, no steer", () => {
   const plain = fs.mkdtempSync(path.join(os.tmpdir(), "primer-plain-"));
   try {
     const res = run({ cwd: plain });
     assert.equal(res.status, 0);
-    assert.equal(res.stdout.trim(), "", "no output when no marker");
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(ctx.startsWith(ABS_PREFIX), "abs-path env fact always emitted");
+    assert.ok(ctx.includes(FOCUS_LINE), "focus-license line present");
+    assert.ok(!ctx.includes("skyline_lore_recall"), "no lore steer without a bank");
+    assert.ok(!ctx.includes(PHP_CTX) && !ctx.includes(RUST_CTX), "no language steer without a marker");
   } finally {
     cleanup(plain);
   }
@@ -123,7 +137,9 @@ test("no bank means no lore context (never advertise an empty bank)", () => {
   try {
     const res = run({ cwd: plain }, { SKYLORE_DB: path.join(plain, "absent.db") });
     assert.equal(res.status, 0);
-    assert.equal(res.stdout.trim(), "");
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(ctx.startsWith(ABS_PREFIX), "env facts still emitted");
+    assert.ok(!ctx.includes("skyline_lore_recall"), "absent bank => no lore steer");
   } finally {
     cleanup(plain);
   }
@@ -136,10 +152,42 @@ test("php marker and lore bank compose without clobbering each other", () => {
     const res = run({ cwd: php }, { SKYLORE_DB: bank.db });
     assert.equal(res.status, 0);
     const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
-    assert.ok(ctx.startsWith(PHP_CTX), "php steer kept verbatim and first");
+    assert.ok(ctx.startsWith(ABS_PREFIX), "env facts front-loaded before steer");
+    assert.ok(ctx.includes(PHP_CTX), "php steer kept verbatim");
     assert.match(ctx, /skyline_lore_recall/);
   } finally {
     cleanup(php);
     cleanup(bank.dir);
+  }
+});
+
+test("#411 git-less workspace: orientation includes the no-git fact", () => {
+  const plain = fs.mkdtempSync(path.join(os.tmpdir(), "primer-nogit-"));
+  try {
+    const res = run({ cwd: plain }, { CLAUDE_PROJECT_DIR: plain });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(ctx.startsWith(ABS_PREFIX), "abs-path env fact front-loaded");
+    assert.ok(ctx.includes(FOCUS_LINE), "focus-license line present");
+    assert.match(ctx, /No git in this workspace/);
+    assert.match(ctx, /pint --dirty is a no-op/);
+    assert.match(ctx, /binary-skyline#719/);
+  } finally {
+    cleanup(plain);
+  }
+});
+
+test("#411 git workspace: no-git fact suppressed when .git is present", () => {
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), "primer-git-"));
+  fs.mkdirSync(path.join(repo, ".git"));
+  try {
+    const res = run({ cwd: repo }, { CLAUDE_PROJECT_DIR: repo });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(ctx.startsWith(ABS_PREFIX), "abs-path env fact front-loaded");
+    assert.ok(ctx.includes(FOCUS_LINE), "focus-license line present");
+    assert.ok(!ctx.includes(GITLESS_LINE), "no-git fact suppressed when .git present");
+  } finally {
+    cleanup(repo);
   }
 });
