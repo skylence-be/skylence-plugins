@@ -429,6 +429,64 @@ function isSubThreshold(command) {
   return true;
 }
 
+// Daemon lifecycle pass-through (L4 hook friction, 2026-07-21).
+// A command that starts/stops/restarts the daemon can never be routed THROUGH
+// the daemon: skyline_run would tear down its own transport mid-call, and the
+// hook's advice degenerates into "restart the daemon by asking the daemon".
+// An enforcement hook must never be the reason an operator cannot recover a
+// dead service, so any pipeline stage naming a lifecycle verb passes through.
+// This is not a new escape hatch: short lifecycle commands already passed by
+// accident via isSubThreshold(). It makes the pass-through intentional and
+// length-independent.
+const LIFECYCLE_VERBS = /^(start|stop|restart|install|uninstall|kill-all)$/;
+const DAEMON_VALUE_FLAGS =
+  /^(-p|--port|-H|--host|--label|--log|--log-file|--timeout|--config|--pid-file)$/;
+
+function isDaemonLifecycle(command, depth = 0) {
+  const raw = String(command || "").trim();
+  if (!raw || depth > 2) return false;
+  for (const stage of raw.split(/(?:&&|\|\||[|;])/)) {
+    const tokens = shellTokens(stage.trim());
+    let i = 0;
+    // same prefix skipping as mapBashCommand: env assignments, then wrappers
+    while (i < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[i])) i++;
+    while (
+      i < tokens.length &&
+      /^(sudo|env|command|nice|nohup|time)$/.test(path.basename(unquote(tokens[i])))
+    ) {
+      i++;
+      while (i < tokens.length && tokens[i].startsWith("-")) i++;
+    }
+    if (i >= tokens.length) continue;
+    const prog = path.basename(unquote(tokens[i]));
+    // `sh -c "skyline daemon restart"` wraps the payload in one quoted token,
+    // so recurse into it rather than miss the most common recovery shape.
+    if (/^(sh|bash|zsh|dash)$/.test(prog)) {
+      const cIdx = tokens.indexOf("-c", i + 1);
+      if (cIdx !== -1 && tokens[cIdx + 1] != null) {
+        if (isDaemonLifecycle(unquote(tokens[cIdx + 1]), depth + 1)) return true;
+      }
+      continue;
+    }
+    if (prog !== "skyline") continue;
+    // Flags may sit anywhere, including between `daemon` and the verb. Drop
+    // them, and drop the VALUE of a value-taking flag too: without that,
+    // `skyline daemon --port 7333 install` reads 7333 as the subcommand.
+    const words = [];
+    const after = tokens.slice(i + 1).map(unquote);
+    for (let j = 0; j < after.length; j++) {
+      const t = after[j];
+      if (!t.startsWith("-")) {
+        words.push(t);
+        continue;
+      }
+      if (DAEMON_VALUE_FLAGS.test(t)) j++; // `--port 7333`; `--port=7333` is one token
+    }
+    if (words[0] === "daemon" && LIFECYCLE_VERBS.test(words[1] || "")) return true;
+  }
+  return false;
+}
+
 function readToolInput() {
   return new Promise((resolve) => {
     let buf = "";
@@ -514,6 +572,16 @@ async function main() {
 
   if (MODE === "bash" && isSubThreshold(command)) {
     // size threshold: skip the nudge entirely for trivial commands
+    process.exit(0);
+  }
+
+  // Daemon lifecycle pass-through: never redirect the command that would
+  // recover the daemon into a call that depends on the daemon.
+  if (MODE === "bash" && isDaemonLifecycle(command)) {
+    process.stderr.write(
+      "skyline daemon lifecycle command; allowing native tool " +
+        "(skyline_run cannot restart its own transport)\n"
+    );
     process.exit(0);
   }
 

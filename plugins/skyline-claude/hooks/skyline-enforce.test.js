@@ -56,6 +56,10 @@ const SESSIONS = [
   "sess-marker-order",
   "sess-grep-flagval",
   "sess-ls-abs",
+  "sess-lifecycle",
+  "sess-lifecycle-narrow",
+  "sess-lifecycle-grep",
+  "sess-lifecycle-down",
 ];
 
 function cleanMarkers() {
@@ -544,4 +548,100 @@ test("grep flag values are not taken as the pattern", () => {
   );
   assert.equal(r2.status, 2);
   assert.match(r2.stderr, /skyline_grep\(\{pattern:"foo"\}\)/, "--exclude-dir value skipped");
+});
+
+// --- daemon lifecycle pass-through (L4 hook friction, 2026-07-21) ----------
+// Regression: the hook rewrote `skyline daemon restart` into skyline_run(...),
+// i.e. restart the daemon through the daemon being restarted. Every command
+// below is >=120 chars or contains a pipe, so isSubThreshold() cannot be the
+// reason it passes: only the lifecycle exemption can be.
+
+const LIFECYCLE_CASES = [
+  [
+    "restart with follow-up stages",
+    "/Users/jv/.local/bin/skyline daemon restart --port 7333 && sleep 3 && " +
+      "/Users/jv/.local/bin/skyline daemon status --port 7333 && curl -sS http://127.0.0.1:7333/health",
+  ],
+  ["kill-all through a pipe", "skyline daemon kill-all | tee /tmp/killall.log"],
+  [
+    "sh -c wrapped restart",
+    'sh -c "cd /Users/jv && /Users/jv/.local/bin/skyline daemon restart --port 7333 --verbose" ; ' +
+      "echo done-restarting-the-daemon-now-for-real",
+  ],
+  [
+    "lifecycle verb in a later stage",
+    "echo restarting the skyline service now for recovery purposes after the crash && " +
+      "sleep 1 && skyline daemon restart --port 7333 --verbose",
+  ],
+  [
+    "install with a flag before the verb",
+    "/usr/local/bin/skyline daemon --port 7333 install --label com.skylence.skyline.daemon " +
+      "--log /tmp/skyline-daemon-install.log --force",
+  ],
+];
+
+for (const [label, command] of LIFECYCLE_CASES) {
+  test(`daemon lifecycle passes through: ${label}`, () => {
+    assert.ok(
+      command.length >= 120 || /[|><]/.test(command),
+      "case must defeat the size threshold, else it proves nothing"
+    );
+    const r = runHook(
+      "bash",
+      { CLAUDE_SESSION_ID: "sess-lifecycle" },
+      { tool_input: { command } }
+    );
+    assert.equal(r.status, 0, `must not block; stderr was: ${r.stderr}`);
+    assert.ok(
+      !r.stderr.includes("skyline_run("),
+      "must never advise restarting the daemon through the daemon"
+    );
+    assert.match(r.stderr, /daemon lifecycle command/, "explicit pass-through notice");
+  });
+}
+
+test("lifecycle exemption is narrow: daemon status still redirects", () => {
+  const command =
+    "/Users/jv/.local/bin/skyline daemon status --port 7333 --format json --verbose && " +
+    "echo checking-the-daemon-status-here-right-now-ok";
+  assert.ok(command.length >= 120, "case must defeat the size threshold");
+  const r = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-lifecycle-narrow" },
+    { tool_input: { command } }
+  );
+  assert.equal(r.status, 2, "status is a read, not lifecycle: still denied");
+  assertHasToolSearch(r.stderr);
+});
+
+test("lifecycle exemption is narrow: grepping for the phrase still redirects", () => {
+  // A regex over the raw command would wrongly exempt this; tokenizing does not.
+  const r = runHook(
+    "bash",
+    { CLAUDE_SESSION_ID: "sess-lifecycle-grep" },
+    {
+      tool_input: {
+        command:
+          'grep -rn "skyline daemon restart" /Users/jv/Code/docs --include=*.md --color=never | head -40',
+      },
+    }
+  );
+  assert.equal(r.status, 2, "grep for the phrase is an ordinary search: denied");
+  assert.match(r.stderr, /skyline_grep\(\{pattern:"skyline daemon restart"\}\)/);
+});
+
+test("daemon-down passthrough holds for a lifecycle command too", () => {
+  // Belt and braces: recovery must work whether the probe port is live or dead.
+  const r = runHook(
+    "bash",
+    { SKYLINE_DAEMON_PORT: "19999", CLAUDE_SESSION_ID: "sess-lifecycle-down" },
+    {
+      tool_input: {
+        command:
+          "skyline daemon restart --port 7333 --verbose | tee /tmp/skyline-restart-recovery.log",
+      },
+    }
+  );
+  assert.equal(r.status, 0, "never block recovery");
+  assert.ok(!r.stderr.includes("skyline_run("), "no self-referential advice");
 });
