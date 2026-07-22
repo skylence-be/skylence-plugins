@@ -95,7 +95,7 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/skyline-deposit.js"]
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/skyline-skylore-deposit.js"]
           }
         ]
       }

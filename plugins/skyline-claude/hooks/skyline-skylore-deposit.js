@@ -23,7 +23,7 @@ function getSessionKey() {
 
 function getDepositMarkerPath() {
   const key = getSessionKey().replace(/[^a-z0-9_-]/gi, "_");
-  return path.join(os.tmpdir(), `skyline-deposit-${key}.marker`);
+  return path.join(os.tmpdir(), `skyline-skylore-deposit-${key}.marker`);
 }
 
 /** true on first fire this session (O_EXCL), false on repeats / fs error. */

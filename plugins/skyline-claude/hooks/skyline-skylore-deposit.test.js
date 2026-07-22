@@ -1,5 +1,5 @@
-// node:test for skyline-deposit.js (skylence-plugins #411 scope (d)).
-// Run with: node --test plugins/skyline-claude/hooks/skyline-deposit.test.js
+// node:test for skyline-skylore-deposit.js (skylence-plugins #411 scope (d)).
+// Run with: node --test plugins/skyline-claude/hooks/skyline-skylore-deposit.test.js
 // Once-per-session Stop deposit trigger: the first Stop blocks with the deposit
 // prompt, a repeat Stop (or stop_hook_active) allows, malformed stdin exits 0.
 // Self-contained; cleans its marker files.
@@ -11,13 +11,13 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const HOOK = path.resolve(__dirname, "skyline-deposit.js");
+const HOOK = path.resolve(__dirname, "skyline-skylore-deposit.js");
 
 const SESSIONS = ["sess-deposit-once", "sess-deposit-active", "sess-deposit-bad"];
 
 function markerPath(sess) {
   const key = String(sess).replace(/[^a-z0-9_-]/gi, "_");
-  return path.join(os.tmpdir(), `skyline-deposit-${key}.marker`);
+  return path.join(os.tmpdir(), `skyline-skylore-deposit-${key}.marker`);
 }
 
 function cleanMarkers() {
