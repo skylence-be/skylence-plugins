@@ -1,6 +1,6 @@
 {
   "name": "skybox-grok",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Wires the skybox code-knowledge-graph MCP daemon (port 7070) into Grok. Provides read-only graph tools + PreToolUse steering for `skybox` CLI commands to the richer MCP equivalents. Additive. Grok-native.",
   "author": {
     "name": "Skylence",

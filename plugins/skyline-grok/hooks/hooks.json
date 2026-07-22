@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" bash",
+            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.sh\" bash",
             "statusMessage": "skyline-enforce"
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" read",
+            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.sh\" read",
             "statusMessage": "skyline-enforce"
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" edit",
+            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.sh\" edit",
             "statusMessage": "skyline-enforce"
           }
         ]
@@ -37,17 +37,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" grep",
+            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.sh\" grep",
             "statusMessage": "skyline-enforce"
           }
         ]
       },
       {
-        "matcher": "list_dir|Glob|list_dir",
+        "matcher": "list_dir|Glob",
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_ROOT=\"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -z \"$PLUGIN_ROOT\" ] || [ ! -f \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" ]; then printf '{\"decision\":\"allow\"}\\n'; exit 0; fi; sh \"$PLUGIN_ROOT/hooks/skyline-enforce.sh\" glob",
+            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.sh\" glob",
             "statusMessage": "skyline-enforce"
           }
         ]

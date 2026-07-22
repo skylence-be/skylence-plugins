@@ -1,6 +1,6 @@
 {
   "name": "skycastle-grok",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Wires the skycastle secrets-manager MCP daemon (port 8210) into Grok. Exposes full secret management tools + steering for `skycastle secrets` / export CLI usage. Additive. Grok-native hooks and paths.",
   "author": {
     "name": "Skylence",
