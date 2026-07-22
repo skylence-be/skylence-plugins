@@ -215,3 +215,81 @@ test("#415 F1: unknown location (no CLAUDE_PROJECT_DIR, no cwd) says nothing abo
   assert.ok(ctx.startsWith(ABS_PREFIX), "orientation still emitted");
   assert.ok(!ctx.includes(GITLESS_LINE), "no fabricated no-git fact for unknown location");
 });
+
+// ---- skyrift orientation facts ----
+const SKYRIFT_WS_LINE = "skyrift copy-on-write workspace";
+const SKYRIFT_PROMOTE = "skyrift promote";
+const SKYRIFT_FANOUT_LINE = "skyrift create";
+
+function skyriftWorkspaceDir() {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "primer-skyrift-ws-"));
+  fs.mkdirSync(path.join(d, ".git")); // a real workspace is a detached clone
+  fs.writeFileSync(path.join(d, ".skyrift-workspace"), "{}");
+  return d;
+}
+function gitDir() {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "primer-git-"));
+  fs.mkdirSync(path.join(d, ".git"));
+  return d;
+}
+function fakeSkyriftBin() {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "primer-skyrift-bin-"));
+  const f = path.join(d, "skyrift");
+  fs.writeFileSync(f, "#!/bin/sh\necho 'skyrift 0.1.0'\n");
+  fs.chmodSync(f, 0o755);
+  return d;
+}
+
+test("a .skyrift-workspace marker gives the land-with-promote orientation", () => {
+  const ws = skyriftWorkspaceDir();
+  try {
+    const res = run({ cwd: ws }, { CLAUDE_PROJECT_DIR: ws });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput
+      .additionalContext;
+    assert.ok(ctx.includes(SKYRIFT_WS_LINE), "workspace orientation present");
+    assert.ok(ctx.includes(SKYRIFT_PROMOTE), "promote guidance present");
+    assert.ok(
+      !ctx.includes(SKYRIFT_FANOUT_LINE),
+      "fan-out hint suppressed inside a workspace"
+    );
+  } finally {
+    cleanup(ws);
+  }
+});
+
+test("a git source with skyrift on PATH gives the fan-out hint, not the workspace fact", () => {
+  const src = gitDir();
+  const bin = fakeSkyriftBin();
+  try {
+    const res = run(
+      { cwd: src },
+      { CLAUDE_PROJECT_DIR: src, PATH: bin + path.delimiter + process.env.PATH }
+    );
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput
+      .additionalContext;
+    assert.ok(ctx.includes(SKYRIFT_FANOUT_LINE), "fan-out hint present");
+    assert.ok(!ctx.includes(SKYRIFT_WS_LINE), "no workspace fact outside a workspace");
+    assert.ok(!ctx.includes(GITLESS_LINE), "git source is not gitless");
+  } finally {
+    cleanup(src);
+    cleanup(bin);
+  }
+});
+
+test("a git source without skyrift emits neither skyrift line", () => {
+  const src = gitDir();
+  const emptyBin = fs.mkdtempSync(path.join(os.tmpdir(), "primer-empty-bin-"));
+  try {
+    const res = run({ cwd: src }, { CLAUDE_PROJECT_DIR: src, PATH: emptyBin });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput
+      .additionalContext;
+    assert.ok(!ctx.includes(SKYRIFT_WS_LINE));
+    assert.ok(!ctx.includes(SKYRIFT_FANOUT_LINE));
+  } finally {
+    cleanup(src);
+    cleanup(emptyBin);
+  }
+});

@@ -47,6 +47,36 @@ function hasGitAncestor(dir) {
   }
 }
 
+// skyrift: land-with-promote orientation vs. a fan-out hint. Walk up for the
+// .skyrift-workspace marker (mirrors hasGitAncestor's ancestor walk).
+function inSkyriftWorkspace(dir) {
+  if (!dir) return false;
+  try {
+    let d = path.resolve(dir);
+    for (let i = 0; i < 64; i++) {
+      if (fs.existsSync(path.join(d, ".skyrift-workspace"))) return true;
+      const parent = path.dirname(d);
+      if (parent === d) break;
+      d = parent;
+    }
+  } catch (_e) {
+    /* fail-open */
+  }
+  return false;
+}
+
+function skyriftAvailable() {
+  try {
+    const r = spawnSync("skyrift", ["--version"], {
+      encoding: "utf8",
+      timeout: 500,
+    });
+    return r.status === 0;
+  } catch (_e) {
+    return false;
+  }
+}
+
 // The skylore bank is operator-wide, not per-project, so this fires regardless
 // of language markers. Only advertised when the bank actually exists: a first
 // recall that returns nothing teaches the agent within one call that recall is
@@ -84,6 +114,16 @@ const FOCUS_LICENSE =
 const GITLESS_FACT =
   "No git in this workspace: pint --dirty is a no-op, acuity semantic freshness will read unverified (vendor leg: binary-skyline#719), and there are no commit checkpoints.";
 
+// skyrift (a): inside a .skyrift-workspace, work is on a disposable detached
+// clone; land it with promote, never push, and it is reapable. The one fact
+// that silently misdirects or loses work when missed.
+const SKYRIFT_WORKSPACE_FACT =
+  "You are in a skyrift copy-on-write workspace: a disposable clone of its source on a detached HEAD. Land committed work with `skyrift promote <path> [--push <remote>]`, not by pushing from here. The workspace is reapable (`skyrift gc`/`discard` may remove it), so keep nothing here you cannot regenerate or promote; a `.skyrift-hold` marker pins it against reaping.";
+
+// skyrift (b): in a git source that is NOT a workspace, when skyrift exists,
+// prefer a CoW workspace to a full clone for isolated parallel work.
+const SKYRIFT_FANOUT_HINT =
+  "For isolated parallel work, `skyrift create` a copy-on-write workspace (clonefile/reflink, near-free) instead of a full clone or sharing the checkout; `skyrift gc` only previews unless given `--apply --force`.";
 let buf = "";
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", (d) => (buf += d));
@@ -116,8 +156,16 @@ process.stdin.on("end", () => {
   // #415 F1: assert git-lessness only for a KNOWN location with no .git up
   // the whole ancestor chain; an unknown location says nothing rather than
   // fabricating an environment fact.
-  if (projectDir && !hasGitAncestor(projectDir)) {
+  const gitless = Boolean(projectDir) && !hasGitAncestor(projectDir);
+  if (gitless) {
     parts.push(GITLESS_FACT);
+  }
+  // skyrift: inside a workspace, the land-with-promote orientation; otherwise,
+  // in a git source where skyrift is installed, a fan-out hint. Exclusive.
+  if (inSkyriftWorkspace(projectDir)) {
+    parts.push(SKYRIFT_WORKSPACE_FACT);
+  } else if (!gitless && projectDir && skyriftAvailable()) {
+    parts.push(SKYRIFT_FANOUT_HINT);
   }
   if (context) {
     parts.push(context);
