@@ -2,16 +2,26 @@
 
 Grok port of the Skylence skyway workflow plugin.
 
-Wires the skyway HTTP MCP daemon (port 3090) into Grok for workflow inspection, control, linting, cost estimation, and approval flows. Purely additive — it does not shadow native file or shell tools.
+Wires the skyway HTTP MCP daemon (port 3090) into Grok for workflow inspection, control, linting, cost estimation, and approval flows. Purely additive — no native tool shadowing (matches skyway-claude).
 
-This is the Grok sibling of `skyway-claude`, `skyway-codex`, and `skyway-antigravity`.
+Sibling of `skyway-claude` (v1.1.3).
 
 ## What it ships
 
-- `plugin.json` + `mcp_config.json` — registers the `skyway` HTTP MCP server.
-- `skills/operate/`, `skills/upgrade/`, `skills/uninstall/`
-- `scripts/uninstall.sh`
-- (No enforcement hooks — matches the additive nature of the other skyway ports.)
+- `plugin.json` + `mcp_config.json` — `skyway` HTTP MCP server.
+- `skills/operate/`, `skills/skyway-status/`, `skills/upgrade/`, `skills/update-plugin/`, `skills/uninstall/`
+- `scripts/upgrade.sh`, `scripts/uninstall.sh`
+- No enforcement hooks (additive product).
+
+## Parity with skyway-claude
+
+| Capability | Status |
+|---|---|
+| MCP wiring | present |
+| operate skill | present |
+| status skill | **ported** (as skill; Claude uses a command) |
+| upgrade.sh (binary update + daemon restart) | **ported** |
+| update-plugin skill | **ported** |
 
 ## Install
 
@@ -21,11 +31,4 @@ grok plugin marketplace update skylence-plugins
 grok plugin install skyway-grok@skylence-be/skylence-plugins --trust
 ```
 
-## Notes
-
-- Same daemon port (3090) as siblings.
-- Uses `GROK_PLUGIN_ROOT` (CLAUDE fallback).
-- Update via `grok plugin update skyway-grok`.
-- See the `operate` skill for detailed usage.
-
-The other Grok ports (`skyline-grok`, `skybox-grok`, `skycastle-grok`) follow the same overall layout.
+**Restart the Grok session** after install/update.

@@ -2,16 +2,28 @@
 
 Grok port of the Skylence skycastle plugin.
 
-Wires the skycastle secrets-manager MCP daemon (HTTP on 127.0.0.1:8210) into Grok. Exposes full secret CRUD, KMS, certs, SSH, scanning, PAM, AI, token tools via MCP. Includes a PreToolUse hook that steers `skycastle secrets` / `skycastle export` shell commands to the MCP equivalents when the daemon is up. Additive (does not shadow native file tools).
+Wires the skycastle secrets-manager MCP daemon (`127.0.0.1:8210`) into Grok. Secret CRUD, KMS, certs, SSH, scanning, PAM, AI, tokens via MCP. PreToolUse steers `skycastle secrets` / `skycastle export` to MCP when the daemon is up (fail-open). Additive.
+
+Sibling of `skycastle-claude` (v1.0.3+).
 
 ## What it ships
 
-- `mcp_config.json` + `plugin.json` — registers the `skycastle` HTTP MCP server.
-- `hooks/hooks.json` + `hooks/skycastle-enforce.sh` — Grok-native steering hook for CLI subcommands (run_terminal_command).
-- `skills/operate/`, `skills/upgrade/`, `skills/uninstall/`
-- `scripts/uninstall.sh`
+- `mcp_config.json` + `plugin.json` — `skycastle` HTTP MCP server.
+- `hooks/skycastle-enforce.js` — structural CLI→MCP steer for secrets/export (+ `skyline_run` argv), Grok decision JSON.
+- `skills/operate/`, `skills/skycastle-status/`, `skills/upgrade/`, `skills/update-plugin/`, `skills/uninstall/`
+- `scripts/upgrade.sh`, `scripts/uninstall.sh`
 
-## Install (after adding the marketplace)
+## Parity with skycastle-claude
+
+| Capability | Status |
+|---|---|
+| Structural enforce (argv + shell) | **ported** |
+| Fail-open when :8210 down | **ported** |
+| skyline_run matcher | **ported** |
+| status skill | **ported** (as skill; Claude uses a command) |
+| upgrade.sh + update-plugin | **ported** |
+
+## Install
 
 ```bash
 grok plugin marketplace add skylence-be/skylence-plugins
@@ -19,13 +31,4 @@ grok plugin marketplace update skylence-plugins
 grok plugin install skycastle-grok@skylence-be/skylence-plugins --trust
 ```
 
-The skycastle MCP tools are then available alongside (and preferred over) the matching CLI verbs.
-
-## Notes
-
-- Daemon on :8210, vault on :8200 (same as other host plugins).
-- Hook uses GROK_PLUGIN_ROOT / CLAUDE fallback and Grok JSON decision contract.
-- Update via `grok plugin update skycastle-grok`.
-- The plugin itself does not manage the skycastle binary/daemon/vault — use `skycastle` CLI for that.
-
-See operate skill for the full tool list and rules.
+**Restart the Grok session** after install/update. Vault is on :8200; MCP on :8210.

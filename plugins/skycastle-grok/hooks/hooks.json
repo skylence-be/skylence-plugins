@@ -1,5 +1,5 @@
 {
-  "description": "Skycastle CLI->MCP steering for Grok: PreToolUse on run_terminal_command detects skycastle secrets/export and redirects to MCP secret tools when daemon up. Fails open.",
+  "description": "Skycastle CLI→MCP steering for Grok: PreToolUse on run_terminal_command/Bash and skyline_run. Structural argv + command-position detection (Claude parity). Only secrets/export; fail-open when daemon :8210 is down.",
   "hooks": {
     "PreToolUse": [
       {
@@ -7,7 +7,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skycastle-enforce.sh\"",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/skycastle-enforce.js\"",
+            "statusMessage": "skycastle-enforce"
+          }
+        ]
+      },
+      {
+        "matcher": "skyline_run|.*skyline_run$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/skycastle-enforce.js\"",
             "statusMessage": "skycastle-enforce"
           }
         ]

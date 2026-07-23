@@ -1,5 +1,5 @@
 {
-  "description": "Skybox CLI->MCP steering for Grok: on run_terminal_command (or Bash), detect skybox subcommands that have MCP equivalents and deny with guidance to use MCP tools instead (when daemon up).",
+  "description": "Skybox CLI→MCP steering for Grok: PreToolUse on run_terminal_command/Bash and skyline_run. Structural argv + command-position detection (Claude parity). Fail-open when daemon :7070 is down.",
   "hooks": {
     "PreToolUse": [
       {
@@ -7,7 +7,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skybox-enforce.sh\"",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/skybox-enforce.js\"",
+            "statusMessage": "skybox-enforce"
+          }
+        ]
+      },
+      {
+        "matcher": "skyline_run|.*skyline_run$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/skybox-enforce.js\"",
             "statusMessage": "skybox-enforce"
           }
         ]
