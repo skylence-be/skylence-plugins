@@ -1,7 +1,7 @@
 {
   "name": "skyway-grok",
-  "version": "1.1.2",
-  "description": "Wires the skyway workflow-orchestration MCP daemon (port 3090) into Grok. Exposes run/step inspection, job control, lint, cost estimation and approval tools. Purely additive. Grok-native.",
+  "version": "1.1.3",
+  "description": "Wires the skyway workflow-orchestration MCP daemon (port 3090) into Grok. Run/step inspection, job control, lint, cost estimation, approval tools. Purely additive. Includes skyway-status, update-plugin, upgrade, operate, uninstall.",
   "author": {
     "name": "Skylence",
     "url": "https://github.com/skylence-be"

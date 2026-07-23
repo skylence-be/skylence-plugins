@@ -1,5 +1,5 @@
 {
-  "description": "Skyline native tool shadowing for Grok: PreToolUse redirects read_file / search_replace / run_terminal_command / grep / list_dir to the equivalent skyline_* MCP tools. Enforcement is active whenever this plugin's hooks are loaded (no fragile daemon probe).",
+  "description": "Skyline native tool shadowing for Grok: PreToolUse redirects read_file / search_replace / run_terminal_command / grep / list_dir to skyline_* MCP tools with exact substitutes (daemon fail-open). Stop deposits skylore once per session. Grok SessionStart cannot inject context (observe-only), so primer/regate/nudge soft-context from skyline-claude are not ported.",
   "hooks": {
     "PreToolUse": [
       {
@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.sh\" bash",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.js\" bash",
             "statusMessage": "skyline-enforce"
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.sh\" read",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.js\" read",
             "statusMessage": "skyline-enforce"
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.sh\" edit",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.js\" edit",
             "statusMessage": "skyline-enforce"
           }
         ]
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.sh\" grep",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.js\" grep",
             "statusMessage": "skyline-enforce"
           }
         ]
@@ -47,8 +47,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.sh\" glob",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/skyline-enforce.js\" glob",
             "statusMessage": "skyline-enforce"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/skyline-skylore-deposit.js\"",
+            "statusMessage": "skyline-skylore-deposit"
           }
         ]
       }
