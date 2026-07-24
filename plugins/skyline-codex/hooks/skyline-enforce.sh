@@ -16,7 +16,7 @@ case "$MODE" in
   edit) printf "use skyline's edit/create tools, not native Edit/Write/apply_patch. %s\n" "$SILENT"; exit 2 ;;
   grep) printf "use skyline's grep/sgrep tools, not Grep. %s\n" "$SILENT"; exit 2 ;;
   glob) printf "use skyline's find/tree tools, not Glob. %s\n" "$SILENT"; exit 2 ;;
-  bash) printf "use skyline's grep/sgrep, find/tree, git, run, test, conflicts tools -- not native Bash. %s\n" "$SILENT"; exit 2 ;;
+  bash) printf "use skyline's grep/sgrep, find/tree, git, run, test, conflicts tools, not native Bash. git is READ-ONLY (status, diff, log, show): commits go through git_commit, push/pull/fetch through git_remote, worktrees through git_worktree; batched commands through run_batch and background jobs through run_job. %s\n" "$SILENT"; exit 2 ;;
 esac
 
 exit 0

@@ -26,7 +26,7 @@ const MESSAGES = {
   edit: `skyline's edit/create (mcp__skyline__edit / mcp__skyline__create) replace Edit/Write. ${SWITCH_EDIT}`,
   grep: `skyline's grep/sgrep (mcp__skyline__grep / mcp__skyline__sgrep) replace Grep. ${SWITCH_ORIENT}`,
   glob: `skyline's find/tree (mcp__skyline__find / mcp__skyline__tree) replace Glob. ${SWITCH_ORIENT}`,
-  bash: `skyline's grep/find/git/run/test (mcp__skyline__grep / find / git / run / test) replace Bash. ${SWITCH_EDIT}`,
+  bash: `skyline's grep/find/git/run/test (mcp__skyline__grep / find / git / run / test) replace Bash. git is READ-ONLY (status, diff, log, show): commits go through mcp__skyline__git_commit, push/pull/fetch through mcp__skyline__git_remote, worktrees through mcp__skyline__git_worktree; batched commands through mcp__skyline__run_batch and background jobs through mcp__skyline__run_job. Load any of those by name with ToolSearch("select:<name>"). ${SWITCH_EDIT}`,
 };
 
 // Fail open unless we positively reach the daemon AND have a message for the mode.

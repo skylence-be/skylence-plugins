@@ -13,8 +13,9 @@ PreToolUse events:
 - `Edit|Write|apply_patch` -> `edit` / `create`
 - `Grep` -> `grep` / `sgrep`
 - `Glob` -> `find` / `tree`
-- `Bash` -> `run`, `git`, `test`, and related skyline
-  tools
+- `Bash` -> `run` / `run_batch` / `run_job`, `git` (read-only) with
+  `git_commit` / `git_remote` / `git_worktree` for writes, `test`, and related
+  skyline tools
 
 When the skyline daemon is unreachable, the hooks fail open so the agent is not
 blocked by a local daemon outage.

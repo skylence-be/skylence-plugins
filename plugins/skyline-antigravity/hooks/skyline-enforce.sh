@@ -47,7 +47,7 @@ case "$MODE" in
   edit) deny "skyline is active: use skyline's edit / create MCP tools instead of the native write_to_file / replace_file_content / multi_replace_file_content tools. $SILENT" ;;
   grep) deny "skyline is active: use skyline's grep / sgrep MCP tools instead of the native search tool. $SILENT" ;;
   glob) deny "skyline is active: use skyline's find / tree MCP tools instead of the native glob tool. $SILENT" ;;
-  bash) deny "skyline is active: use skyline's grep, find, tree, git, run, test tools instead of run_command for file/repo work. $SILENT" ;;
+  bash) deny "skyline is active: use skyline's grep, find, tree, git, run, test tools instead of run_command for file/repo work. git is READ-ONLY (status, diff, log, show): commits go through git_commit, push/pull/fetch through git_remote, worktrees through git_worktree; batched commands through run_batch and background jobs through run_job. $SILENT" ;;
 esac
 
 # Unknown mode: do not block.
