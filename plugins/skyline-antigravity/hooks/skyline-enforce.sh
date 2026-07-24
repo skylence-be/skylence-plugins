@@ -51,7 +51,7 @@ case "$MODE" in
   edit) deny "skyline is active: use the skyline_edit / skyline_create MCP tools instead of the native write_to_file / replace_file_content / multi_replace_file_content tools." ;;
   grep) deny "skyline is active: use the skyline_grep / skyline_sgrep MCP tools instead of the native search tool." ;;
   glob) deny "skyline is active: use the skyline_find / skyline_tree MCP tools instead of the native glob tool." ;;
-  bash) deny "skyline is active: use skyline_grep, skyline_find, skyline_tree, skyline_git, skyline_run, skyline_test instead of run_command for file/repo work." ;;
+  bash) deny "skyline is active: use skyline_grep, skyline_find, skyline_tree, skyline_git (read-only: status/diff/log/show/worktree-list), skyline_git_commit/skyline_git_remote/skyline_git_worktree for git writes, skyline_run/skyline_run_batch/skyline_run_job, skyline_test instead of run_command for file/repo work." ;;
 esac
 
 # Unknown mode: do not block.

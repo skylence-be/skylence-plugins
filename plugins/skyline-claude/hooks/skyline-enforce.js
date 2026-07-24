@@ -294,13 +294,36 @@ function mapBashCommand(command, root) {
   if (prog === "git") {
     // first non-flag = subcommand
     let sub = null;
-    for (const t of rest) {
-      if (t.startsWith("-")) continue;
-      sub = t;
+    let subIdx = -1;
+    for (let j = 0; j < rest.length; j++) {
+      if (rest[j].startsWith("-")) continue;
+      sub = rest[j];
+      subIdx = j;
       break;
     }
-    if (sub) return fmtCall("skyline_git", { subcommand: sub });
-    return fmtCall("skyline_git", {});
+    if (!sub) return fmtCall("skyline_git", {});
+    // Post-split (binary-skyline lanes A-E): `git` is READ-ONLY (status,
+    // diff, log, show, worktree-list). Writes split by risk class:
+    // git_commit (add, commit, merge), git_remote (push, pull, fetch),
+    // git_worktree (worktree-add, worktree-remove).
+    if (sub === "worktree") {
+      let sub2 = null;
+      for (let j = subIdx + 1; j < rest.length; j++) {
+        if (rest[j].startsWith("-")) continue;
+        sub2 = rest[j];
+        break;
+      }
+      if (sub2 === "add") return fmtCall("skyline_git_worktree", { subcommand: "worktree-add" });
+      if (sub2 === "remove" || sub2 === "prune") return fmtCall("skyline_git_worktree", { subcommand: "worktree-remove" });
+      return fmtCall("skyline_git", { subcommand: "worktree-list" });
+    }
+    if (sub === "add" || sub === "commit" || sub === "merge") {
+      return fmtCall("skyline_git_commit", { subcommand: sub });
+    }
+    if (sub === "push" || sub === "pull" || sub === "fetch") {
+      return fmtCall("skyline_git_remote", { subcommand: sub });
+    }
+    return fmtCall("skyline_git", { subcommand: sub });
   }
 
   if (prog === "grep" || prog === "egrep" || prog === "fgrep" || prog === "rg") {
