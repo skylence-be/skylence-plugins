@@ -97,7 +97,7 @@ function tick() {
   if (fc > prev) {
     const fresh = fc - prev;
     process.stdout.write(
-      `${fresh} new skyline friction event(s) recorded since the last check (devlog warnings/errors: stale-tag rejections, guide-gate blocks, shell fallbacks). If any is a real defect, file it with skyline_report_issue after searching open AND closed issues; comment new evidence on a match instead of opening a duplicate.\n`
+      `${fresh} new skyline friction event(s) recorded since the last check (devlog warnings/errors: stale-tag rejections, guide-gate blocks, shell fallbacks). If any is a real defect, file it with report_issue after searching open AND closed issues; comment new evidence on a match instead of opening a duplicate.\n`
     );
     try { fs.writeFileSync(STATE, String(fc)); } catch {}
   } else if (fc < prev) {

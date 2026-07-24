@@ -123,7 +123,7 @@ The following were previously assumptions and are now confirmed:
    grep/find/glob tool names are **not documented**, so search calls are **not
    intercepted** by this plugin. Only `run_command`, `view_file`, and the
    write/edit tools are matched. (The shell `run_command` hook still steers
-   agents toward `skyline_grep` / `skyline_find` / `skyline_tree` for shell-
+   agents toward `grep` / `find` / `tree` for shell-
    driven search.) TODO: add search matchers once the names are documented.
 
 2. **`plugin.json` `mcpServers` pointer shape.** We keep

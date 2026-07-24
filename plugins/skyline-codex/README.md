@@ -9,11 +9,11 @@ tooling while the daemon is running.
 The hook config currently targets Codex tool names that are known to dispatch
 PreToolUse events:
 
-- `Read` -> `skyline_read`
-- `Edit|Write|apply_patch` -> `skyline_edit` / `skyline_create`
-- `Grep` -> `skyline_grep` / `skyline_sgrep`
-- `Glob` -> `skyline_find` / `skyline_tree`
-- `Bash` -> `skyline_run`, `skyline_git`, `skyline_test`, and related skyline
+- `Read` -> `read`
+- `Edit|Write|apply_patch` -> `edit` / `create`
+- `Grep` -> `grep` / `sgrep`
+- `Glob` -> `find` / `tree`
+- `Bash` -> `run`, `git`, `test`, and related skyline
   tools
 
 When the skyline daemon is unreachable, the hooks fail open so the agent is not

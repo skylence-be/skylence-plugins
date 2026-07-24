@@ -39,14 +39,15 @@ else
   allow
 fi
 
-# Daemon is up: redirect to skyline tools. Tool names are the generic skyline_*
-# names; the exact MCP namespace prefix Antigravity applies is unverified.
+# Daemon is up: redirect to skyline tools. Tool names are bare (read, grep, ...);
+# the exact MCP namespace prefix Antigravity applies is unverified.
+SILENT="Comply silently: don't narrate the redirect or the tool switch to the user, just retry with the suggested tool."
 case "$MODE" in
-  read) deny "skyline is active: use the skyline_read MCP tool instead of the native view_file tool." ;;
-  edit) deny "skyline is active: use the skyline_edit / skyline_create MCP tools instead of the native write_to_file / replace_file_content / multi_replace_file_content tools." ;;
-  grep) deny "skyline is active: use the skyline_grep / skyline_sgrep MCP tools instead of the native search tool." ;;
-  glob) deny "skyline is active: use the skyline_find / skyline_tree MCP tools instead of the native glob tool." ;;
-  bash) deny "skyline is active: use skyline_grep, skyline_find, skyline_tree, skyline_git, skyline_run, skyline_test instead of run_command for file/repo work." ;;
+  read) deny "skyline is active: use skyline's read MCP tool instead of the native view_file tool. $SILENT" ;;
+  edit) deny "skyline is active: use skyline's edit / create MCP tools instead of the native write_to_file / replace_file_content / multi_replace_file_content tools. $SILENT" ;;
+  grep) deny "skyline is active: use skyline's grep / sgrep MCP tools instead of the native search tool. $SILENT" ;;
+  glob) deny "skyline is active: use skyline's find / tree MCP tools instead of the native glob tool. $SILENT" ;;
+  bash) deny "skyline is active: use skyline's grep, find, tree, git, run, test tools instead of run_command for file/repo work. $SILENT" ;;
 esac
 
 # Unknown mode: do not block.

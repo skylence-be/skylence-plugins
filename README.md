@@ -50,8 +50,8 @@ skyline daemon status
 ```
 
 The port 7333 row should show `running`. In a fresh agent session, the Skyline
-MCP tools should include `skyline_read`, `skyline_grep`, `skyline_edit`,
-`skyline_git`, and `skyline_run`.
+MCP tools should include `read`, `grep`, `edit`,
+`git`, and `run`.
 
 ## Upgrade and removal
 

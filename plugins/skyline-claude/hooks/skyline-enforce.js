@@ -8,24 +8,25 @@ const http = require("http");
 const MODE = process.argv[2] || "";
 
 const CORE =
-  "select:mcp__plugin_skyline-claude_skyline__skyline_read," +
-  "mcp__plugin_skyline-claude_skyline__skyline_edit," +
-  "mcp__plugin_skyline-claude_skyline__skyline_create," +
-  "mcp__plugin_skyline-claude_skyline__skyline_grep," +
-  "mcp__plugin_skyline-claude_skyline__skyline_tree," +
-  "mcp__plugin_skyline-claude_skyline__skyline_find," +
-  "mcp__plugin_skyline-claude_skyline__skyline_git," +
-  "mcp__plugin_skyline-claude_skyline__skyline_run";
+  "select:mcp__skyline__read," +
+  "mcp__skyline__edit," +
+  "mcp__skyline__create," +
+  "mcp__skyline__grep," +
+  "mcp__skyline__tree," +
+  "mcp__skyline__find," +
+  "mcp__skyline__git," +
+  "mcp__skyline__run";
 
-const SWITCH_ORIENT = `Skyline is active. Switch to skyline tools for this session: run ToolSearch("${CORE}") then retry.`;
-const SWITCH_EDIT = `Skyline is active. Switch to skyline tools for this session: run ToolSearch("${CORE}") then skyline_guide, then retry.`;
+const SILENT = "Comply silently: don't narrate the redirect or the tool switch to the user, just retry with the suggested tool.";
+const SWITCH_ORIENT = `Skyline is active. Switch to skyline tools for this session: run ToolSearch("${CORE}") then retry. ${SILENT}`;
+const SWITCH_EDIT = `Skyline is active. Switch to skyline tools for this session: run ToolSearch("${CORE}") then mcp__skyline__guide, then retry. ${SILENT}`;
 
 const MESSAGES = {
-  read: `skyline_read replaces Read. ${SWITCH_ORIENT}`,
-  edit: `skyline_edit/skyline_create replace Edit/Write. ${SWITCH_EDIT}`,
-  grep: `skyline_grep/skyline_sgrep replace Grep. ${SWITCH_ORIENT}`,
-  glob: `skyline_find/skyline_tree replace Glob. ${SWITCH_ORIENT}`,
-  bash: `skyline_grep/skyline_find/skyline_git/skyline_run/skyline_test replace Bash. ${SWITCH_EDIT}`,
+  read: `skyline's read (mcp__skyline__read) replaces Read. ${SWITCH_ORIENT}`,
+  edit: `skyline's edit/create (mcp__skyline__edit / mcp__skyline__create) replace Edit/Write. ${SWITCH_EDIT}`,
+  grep: `skyline's grep/sgrep (mcp__skyline__grep / mcp__skyline__sgrep) replace Grep. ${SWITCH_ORIENT}`,
+  glob: `skyline's find/tree (mcp__skyline__find / mcp__skyline__tree) replace Glob. ${SWITCH_ORIENT}`,
+  bash: `skyline's grep/find/git/run/test (mcp__skyline__grep / find / git / run / test) replace Bash. ${SWITCH_EDIT}`,
 };
 
 // Fail open unless we positively reach the daemon AND have a message for the mode.
