@@ -18,6 +18,35 @@ function hasMarker(cwd, name) {
     return false;
   }
 }
+// Stack-manifest root for PHP/Cargo/go + blueprint chain detection.
+// SessionStart cwd is often a repo SUBDIRECTORY; checking only the raw cwd
+// silently drops injection (PR 36 bounce c257). Prefer CLAUDE_PROJECT_DIR
+// (same projectDir used for git/skyrift facts), then walk up for the nearest
+// composer.json / Cargo.toml / go.mod, stopping at .git when present.
+function stackDetectionRoot(start) {
+  if (!start) return "";
+  try {
+    let d = path.resolve(start);
+    const origin = d;
+    for (let i = 0; i < 64; i++) {
+      if (
+        fs.existsSync(path.join(d, "composer.json")) ||
+        fs.existsSync(path.join(d, "Cargo.toml")) ||
+        fs.existsSync(path.join(d, "go.mod"))
+      ) {
+        return d;
+      }
+      if (fs.existsSync(path.join(d, ".git"))) return d;
+      const parent = path.dirname(d);
+      if (parent === d) break;
+      d = parent;
+    }
+    return origin;
+  } catch (_e) {
+    return start;
+  }
+}
+
 
 // #415 F1: a single existsSync at the top dir fabricates "no git" for
 // repo-SUBDIR sessions. Mirror skyline-enforce.js projectRoot(): walk up for
@@ -250,14 +279,18 @@ process.stdin.on("end", () => {
     process.exit(0); // malformed => silent exit 0
   }
 
+  // projectDir first so git/skyrift and stack detection agree on the start.
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || cwd;
+  const detectRoot = stackDetectionRoot(projectDir);
+
   let context = "";
-  if (hasMarker(cwd, "composer.json")) {
+  if (hasMarker(detectRoot, "composer.json")) {
     context = "Skyline semantic PHP tools are active here. For symbol questions (where is X defined, who calls Y, which same-named class resolves), don't conclude from text counts: run skyline_symbol_card(path, line, symbol) or skyline_references and reconcile. A name_only hit is unconfirmed until you verify its receiver, and if symbol_card's count disagrees with a grep count, decompose by receiver. Read symbol_card's provenance and freshness before assuming the index is degraded; use skyline_grep for literal text only.";
-  } else if (hasMarker(cwd, "Cargo.toml") || hasMarker(cwd, "go.mod")) {
+  } else if (hasMarker(detectRoot, "Cargo.toml") || hasMarker(detectRoot, "go.mod")) {
     context = "Skyline semantic tools active. For symbol questions, don't conclude from grep counts: run skyline_definition, skyline_references, or skyline_implementation and reconcile any unproven hit by checking its receiver; read the tool's freshness before assuming degradation.";
   }
 
-  const blueprintLine = blueprintInvocationContext(cwd);
+  const blueprintLine = blueprintInvocationContext(detectRoot);
   if (blueprintLine) {
     context = context ? context + "\n\n" + blueprintLine : blueprintLine;
   }
@@ -284,7 +317,7 @@ process.stdin.on("end", () => {
       ' on the call. On "No matches found." check the "(searched ...)" line first: if it is not this root, fix the path - never conclude a file is absent from a wrong-base search.'
     : ABS_PATH_FACT;
   const parts = [absFact, FOCUS_LICENSE];
-  const projectDir = process.env.CLAUDE_PROJECT_DIR || cwd;
+  // projectDir already computed above for stack detection.
   // #415 F1: assert git-lessness only for a KNOWN location with no .git up
   // the whole ancestor chain; an unknown location says nothing rather than
   // fabricating an environment fact.

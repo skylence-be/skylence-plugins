@@ -471,3 +471,31 @@ test("go.mod, blueprint skill not installed: no injection", () => {
     cleanup(app);
   }
 });
+
+// PR 36 bounce (c257): SessionStart cwd in a repo SUBDIRECTORY must still
+// find composer.json at the git root (silent false-negative before the fix).
+test("subdir cwd: composer.json at repo root still injects blueprint + php context", () => {
+  const app = composerDir(JSON.stringify({ require: { "filament/filament": "^5.0" } }));
+  fs.mkdirSync(path.join(app, ".git"));
+  const deep = path.join(app, "app", "Models");
+  fs.mkdirSync(deep, { recursive: true });
+  const claude = fakeClaudeConfig([
+    "filament-blueprint-skill",
+    "livewire-blueprint-skill",
+    "laravel-blueprint-skill",
+  ]);
+  try {
+    // No CLAUDE_PROJECT_DIR: pure cwd walk-up (the live-probe failure mode).
+    const res = run({ cwd: deep }, { CLAUDE_CONFIG_DIR: claude });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(ctx.includes(PHP_CTX), "php semantic line still present from subdir cwd");
+    assert.match(
+      ctx,
+      /invoke `filament-blueprint-skill`, `livewire-blueprint-skill`, `laravel-blueprint-skill`/
+    );
+  } finally {
+    cleanup(app);
+    cleanup(claude);
+  }
+});
