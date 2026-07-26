@@ -1,6 +1,6 @@
 ---
 name: feature-loop
-description: The skyline-native build loop for implementing a feature or a whole app in a repo — orientation ritual, route-aware semantic posture, vertical slices that each end green, anchor-based editing, batched diagnostics, test-anchored fixes, commit checkpoints, and advisor cadence. Invoke at the START of any implementation task ("build X", "create an app", "add feature Y") in a workspace where the skyline MCP tools are available. Includes a Laravel/Livewire profile.
+description: The skyline-native build loop — orientation ritual, route-aware semantic posture, vertical slices that each end green, anchor-based editing, batched diagnostics, test-anchored fixes, commit checkpoints, and advisor cadence. Invoke PROACTIVELY, without being asked, at the start of ANY implementation work in a workspace where the skyline MCP tools are available — building a feature, creating an app, adding an endpoint, a refactor with behavior changes. Not for pure investigation or single-line fixes. Includes a Laravel/Livewire profile.
 ---
 
 # feature-loop: build features the skyline way
@@ -40,7 +40,7 @@ Plan the feature as 3–8 vertical slices, each independently shippable
 (data model → first UI surface → each behavior → polish). Then per slice:
 
 1. **Generate or locate.** Scaffolding via `run` with an ARGV ARRAY
-   (`["php","artisan","make:model","Todo","-mf"]`) — never a shell string;
+   (`["php","artisan","make:model","<Name>","-mf"]`) — never a shell string;
    background anything slow (`background:true`, then `run_wait`).
 2. **Edit from anchors.** `grep` (or `find`) → paste the `¶path#TAG` header
    straight into `edit`. Never read a file you already have an anchor for.

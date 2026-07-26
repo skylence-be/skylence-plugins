@@ -61,14 +61,29 @@ function buildCore(composer) {
     "mcp__plugin_skyline-claude_skyline__skyline_definition," +
     "mcp__plugin_skyline-claude_skyline__skyline_references," +
     "mcp__plugin_skyline-claude_skyline__skyline_symbols" +
-    (composer ? ",mcp__plugin_skyline-claude_skyline__skyline_symbol_card" : "")
+    (composer && !acuityMcpRoutePinnedOff()
+      ? ",mcp__plugin_skyline-claude_skyline__skyline_symbol_card"
+      : "")
   );
 }
 
+// The symbol_card tip only holds when PHP is served by the acuity MCP route:
+// the daemon's symbol_card_php_only_guard REFUSES on the LSP route, so a box
+// pinned off it (SKYLINE_ACUITY_MCP_PHP explicitly falsy) must not be steered
+// into a tool that errors on every call (binary-skyline#828 field case
+// 2026-07-26). Runtime self-heal fallbacks are invisible to a hook; the env
+// pin is the knowable half, and the daemon-side refusal message steers to
+// definition/references for the rest.
+function acuityMcpRoutePinnedOff() {
+  const v = String(process.env.SKYLINE_ACUITY_MCP_PHP || "").toLowerCase();
+  return v === "0" || v === "false" || v === "no" || v === "off";
+}
+
 function toolSearchLine(composer) {
-  const php = composer
-    ? " PHP project: skyline_symbol_card answers symbol questions (declaration + callers + resolution) in one call."
-    : "";
+  const php =
+    composer && !acuityMcpRoutePinnedOff()
+      ? " PHP project: skyline_symbol_card answers symbol questions (declaration + callers + resolution) in one call."
+      : "";
   return `Tools deferred? run ToolSearch("${buildCore(composer)}") then retry.${php}`;
 }
 
