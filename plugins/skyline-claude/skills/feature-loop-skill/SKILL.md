@@ -7,9 +7,8 @@ Implementing in skyline workspace. Follow loop exactly; each rule measured/field
 
 PATHS: absolute path or cwd= on EVERY skyline call (daemon cwd ≠ yours). Zero-match ≠ absence until (searched ...) line names repo root.
 
-ORIENT (once, 5 calls):
-tree(abs root) → git status (lines carry anchors) → lore_recall(task+stack words, unscoped; consume hits) → lsp_warm(one source file) → read dependency manifest
-manifest names stack (composer.json: filament ⇒ filament+livewire+laravel; livewire ⇒ livewire+laravel; laravel ⇒ laravel; Cargo.toml ⇒ rust; go.mod ⇒ go) ⇒ invoke EVERY installed skill named `<stack>-blueprint-skill` NOW, before PLAN; skill absent ⇒ proceed, zero friction, no error.
+ORIENT (once, 6 calls):
+tree(abs root) → git status (lines carry anchors) → lore_recall(task+stack words, unscoped; consume hits) → lsp_warm(one source file) → read dependency manifest → invoke `<stack>-blueprint-skill` per manifest (filament ⇒ all three; livewire ⇒ +laravel; Cargo.toml ⇒ rust; go.mod ⇒ go; none installed ⇒ skip, zero friction)
 
 POSTURE ← lsp_warm.project_layer_state:
   fresh + ready_semantic:true  ⇒ full semantic surface (definition/references/symbol_card/impact); trust diagnostics

@@ -22,12 +22,14 @@ function run(input, env = {}) {
   return spawnSync(process.execPath, [HOOK], {
     encoding: "utf8",
     input: JSON.stringify(input),
-    // Hermetic by default: the operator's real ~/.skylence/skylore.db must not
-    // leak into marker tests, or they fail only on machines that use skylore.
-    // Callers that exercise lore override SKYLORE_DB explicitly.
+    // Hermetic by default: the operator's real ~/.skylence/skylore.db and
+    // ~/.claude/plugins/installed_plugins.json must not leak into marker
+    // tests, or they fail only on a machine that actually has these things
+    // installed. Callers that exercise lore/blueprint override explicitly.
     env: {
       ...process.env,
       SKYLORE_DB: path.join(os.tmpdir(), "primer-no-such-bank.db"),
+      CLAUDE_CONFIG_DIR: path.join(os.tmpdir(), "primer-no-such-claude-dir"),
       ...env,
     },
   });
@@ -291,5 +293,209 @@ test("a git source without skyrift emits neither skyrift line", () => {
   } finally {
     cleanup(src);
     cleanup(emptyBin);
+  }
+});
+
+// ---- blueprint invocation enforcement (Lane H) ----
+
+function composerDir(content) {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "primer-composer-"));
+  fs.writeFileSync(path.join(d, "composer.json"), content);
+  return d;
+}
+
+function cargoDir() {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "primer-cargo-"));
+  fs.writeFileSync(path.join(d, "Cargo.toml"), '[package]\nname = "x"\n');
+  return d;
+}
+
+function goModDir() {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "primer-gomod-"));
+  fs.writeFileSync(path.join(d, "go.mod"), "module x\n");
+  return d;
+}
+
+// A fake ~/.claude tree with exactly the given blueprint skills installed,
+// wired through installed_plugins.json the same way a real install is.
+function fakeClaudeConfig(skillNames) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "primer-claude-"));
+  const installPath = path.join(
+    root,
+    "plugins",
+    "cache",
+    "fake-marketplace",
+    "fake-plugin",
+    "0.0.1"
+  );
+  const skillsDir = path.join(installPath, "skills");
+  fs.mkdirSync(skillsDir, { recursive: true });
+  for (const name of skillNames) {
+    fs.mkdirSync(path.join(skillsDir, name));
+  }
+  fs.writeFileSync(
+    path.join(root, "plugins", "installed_plugins.json"),
+    JSON.stringify({
+      version: 2,
+      plugins: {
+        "fake-plugin@fake-marketplace": [{ scope: "user", installPath }],
+      },
+    })
+  );
+  return root;
+}
+
+test("filament composer.json + all three blueprint skills installed: names all three, filament-implies chain order", () => {
+  const app = composerDir(JSON.stringify({ require: { "filament/filament": "^5.0" } }));
+  const claude = fakeClaudeConfig([
+    "filament-blueprint-skill",
+    "livewire-blueprint-skill",
+    "laravel-blueprint-skill",
+  ]);
+  try {
+    const res = run({ cwd: app }, { CLAUDE_CONFIG_DIR: claude });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.match(
+      ctx,
+      /invoke `filament-blueprint-skill`, `livewire-blueprint-skill`, `laravel-blueprint-skill`/
+    );
+    assert.match(ctx, /before the first edit/);
+  } finally {
+    cleanup(app);
+    cleanup(claude);
+  }
+});
+
+test("filament composer.json, only laravel-blueprint-skill installed: names only the installed one", () => {
+  const app = composerDir(JSON.stringify({ require: { "filament/filament": "^5.0" } }));
+  const claude = fakeClaudeConfig(["laravel-blueprint-skill"]);
+  try {
+    const res = run({ cwd: app }, { CLAUDE_CONFIG_DIR: claude });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.match(ctx, /invoke `laravel-blueprint-skill`/);
+    assert.ok(!ctx.includes("filament-blueprint-skill"));
+    assert.ok(!ctx.includes("livewire-blueprint-skill"));
+  } finally {
+    cleanup(app);
+    cleanup(claude);
+  }
+});
+
+test("livewire (non-filament) composer.json: names livewire+laravel, never filament", () => {
+  const app = composerDir(JSON.stringify({ require: { "livewire/livewire": "^3.0" } }));
+  const claude = fakeClaudeConfig([
+    "filament-blueprint-skill",
+    "livewire-blueprint-skill",
+    "laravel-blueprint-skill",
+  ]);
+  try {
+    const res = run({ cwd: app }, { CLAUDE_CONFIG_DIR: claude });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.match(ctx, /invoke `livewire-blueprint-skill`, `laravel-blueprint-skill`/);
+    assert.ok(!ctx.includes("filament-blueprint-skill"));
+  } finally {
+    cleanup(app);
+    cleanup(claude);
+  }
+});
+
+test("laravel-only composer.json + laravel-blueprint-skill installed: names laravel-blueprint-skill", () => {
+  const app = composerDir(JSON.stringify({ require: { "laravel/framework": "^12.0" } }));
+  const claude = fakeClaudeConfig(["laravel-blueprint-skill"]);
+  try {
+    const res = run({ cwd: app }, { CLAUDE_CONFIG_DIR: claude });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.match(ctx, /invoke `laravel-blueprint-skill` \(Skill tool\) at plan time/);
+  } finally {
+    cleanup(app);
+    cleanup(claude);
+  }
+});
+
+test("laravel composer.json, blueprint skill not installed: no injection (zero noise)", () => {
+  const app = composerDir(JSON.stringify({ require: { "laravel/framework": "^12.0" } }));
+  try {
+    const res = run({ cwd: app }); // default env: no such CLAUDE_CONFIG_DIR
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(!ctx.includes("blueprint-skill"));
+  } finally {
+    cleanup(app);
+  }
+});
+
+test("non-stack composer.json (plain php lib): no injection even with every blueprint skill installed", () => {
+  const app = composerDir(JSON.stringify({ require: { "monolog/monolog": "^3.0" } }));
+  const claude = fakeClaudeConfig([
+    "filament-blueprint-skill",
+    "livewire-blueprint-skill",
+    "laravel-blueprint-skill",
+  ]);
+  try {
+    const res = run({ cwd: app }, { CLAUDE_CONFIG_DIR: claude });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(!ctx.includes("blueprint-skill"));
+  } finally {
+    cleanup(app);
+    cleanup(claude);
+  }
+});
+
+test("Cargo.toml + rust-blueprint-skill installed: names rust-blueprint-skill", () => {
+  const app = cargoDir();
+  const claude = fakeClaudeConfig(["rust-blueprint-skill"]);
+  try {
+    const res = run({ cwd: app }, { CLAUDE_CONFIG_DIR: claude });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.match(ctx, /invoke `rust-blueprint-skill` \(Skill tool\)/);
+  } finally {
+    cleanup(app);
+    cleanup(claude);
+  }
+});
+
+test("go.mod, blueprint skill not installed: no injection", () => {
+  const app = goModDir();
+  try {
+    const res = run({ cwd: app });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(!ctx.includes("blueprint-skill"));
+  } finally {
+    cleanup(app);
+  }
+});
+
+// PR 36 bounce (c257): SessionStart cwd in a repo SUBDIRECTORY must still
+// find composer.json at the git root (silent false-negative before the fix).
+test("subdir cwd: composer.json at repo root still injects blueprint + php context", () => {
+  const app = composerDir(JSON.stringify({ require: { "filament/filament": "^5.0" } }));
+  fs.mkdirSync(path.join(app, ".git"));
+  const deep = path.join(app, "app", "Models");
+  fs.mkdirSync(deep, { recursive: true });
+  const claude = fakeClaudeConfig([
+    "filament-blueprint-skill",
+    "livewire-blueprint-skill",
+    "laravel-blueprint-skill",
+  ]);
+  try {
+    // No CLAUDE_PROJECT_DIR: pure cwd walk-up (the live-probe failure mode).
+    const res = run({ cwd: deep }, { CLAUDE_CONFIG_DIR: claude });
+    assert.equal(res.status, 0);
+    const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
+    assert.ok(ctx.includes(PHP_CTX), "php semantic line still present from subdir cwd");
+    assert.match(
+      ctx,
+      /invoke `filament-blueprint-skill`, `livewire-blueprint-skill`, `laravel-blueprint-skill`/
+    );
+  } finally {
+    cleanup(app);
+    cleanup(claude);
   }
 });
