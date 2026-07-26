@@ -1,6 +1,6 @@
 ---
 name: debug-loop-skill
-description: Skyline-native debug loop — recall known quirks before theorizing, red reproduction before any fix, one-hypothesis-one-probe discipline, teed-output forensics instead of reruns, regression test mandatory. Invoke PROACTIVELY, unasked, whenever work is fixing something broken — failing test, error, crash, wrong output, regression, "X stopped working". Not for building new behavior (feature-loop-skill) or reviewing diffs (review-loop-skill).
+description: FIRST ACTION of fix work — invoke before touching any file, unasked, whenever the task says broken/failing/error/crash/wrong/regression/"stopped working" and skyline MCP tools are available. Skyline-native debug loop — recall known quirks before theorizing, red reproduction before any fix, one-hypothesis-one-probe discipline, teed-output forensics instead of reruns, regression test mandatory. Not for building new behavior (feature-loop-skill) or reviewing diffs (review-loop-skill).
 ---
 
 Fixing something broken in skyline workspace. Follow loop exactly. NEVER fix before red reproduction exists; NEVER stack second fix on unverified first theory.

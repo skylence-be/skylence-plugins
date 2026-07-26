@@ -1,6 +1,6 @@
 ---
 name: review-loop-skill
-description: Skyline-native code review loop — full diff never summary, every claim re-verified by execution, adversarial failure scenarios per finding, ranked findings with anchors, report without patching. Invoke PROACTIVELY, unasked, whenever work is reviewing changes — PR, branch diff, commit, "look at what X built". Not for fixing (debug-loop-skill) or building (feature-loop-skill).
+description: FIRST ACTION of review work — invoke before reading any diff, unasked, whenever the task says review/check/look-at changes, a PR, a branch, or "what X built" and skyline MCP tools are available. Skyline-native review loop — full diff never summary, every claim re-verified by execution, adversarial failure scenarios per finding, ranked findings with anchors, report without patching. Not for fixing (debug-loop-skill) or building (feature-loop-skill).
 ---
 
 Reviewing changes in skyline workspace. Review ARTIFACTS, never author intent. Report findings; do NOT fix unless explicitly asked.

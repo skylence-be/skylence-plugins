@@ -1,6 +1,6 @@
 ---
 name: feature-loop-skill
-description: Skyline-native build loop — orientation ritual, route-aware semantic posture, vertical slices each ending green, anchor-based editing, batched diagnostics, test-anchored fixes, commit checkpoints, advisor cadence. Invoke PROACTIVELY, unasked, at start of ANY implementation work where skyline MCP tools available — feature build, app creation, endpoint addition, behavior-changing refactor. Not for pure investigation or single-line fixes.
+description: FIRST ACTION of implementation work — invoke before touching any file, unasked, whenever the task says build/create/implement/add/make (feature, app, endpoint, behavior-changing refactor) and skyline MCP tools are available. Skyline-native build loop — orientation ritual, route-aware semantic posture, vertical slices each ending green, anchor-based editing, batched diagnostics, test-anchored fixes, commit checkpoints, advisor cadence. Not for pure investigation or single-line fixes.
 ---
 
 Implementing in skyline workspace. Follow loop exactly; each rule measured/field-derived; deviation recreates known failures. Work unit = vertical slice ending green. Edit unit = ¶path#TAG anchor, never re-read.
