@@ -35,10 +35,11 @@ SLICE CYCLE (repeat per slice):
   ├─ edit: multiple hunks one file ⇒ ONE edit, stacked ops; cross-file change (model+surface+test) ⇒ ONE multi-section edit + verify:true (atomic, whole rollback on reject)
   ├─ diagnostics: ONE call, paths:[all touched files]; never per-file calls
   ├─ test: failures return edit anchors ⇒ fix directly, no re-locating
-  ├─ template/view edits: verify:true = syntax only; runtime component/asset resolution invisible to reparse ⇒ pair with request-level render test same slice
+  ├─ template/view edits: verify:true = reparse only; structural damage (root-element count, unbalanced tags) + runtime component/asset resolution invisible to reparse ⇒ re-read edited range IMMEDIATELY after edit (1 read ≪ red test run + file recreation), then pair with request-level render test same slice
   ├─ data queries owned by user/tenant ⇒ same slice adds test proving other user sees nothing
   ├─ checkpoint: formatter via run → git_commit green slice (rollback points)
   └─ ADVISOR GATE (if advisor/review tool active): slice just committed = model slice OR first user-facing surface ⇒ consult advisor NOW, findings = review input, before next slice starts. Part of cycle, not optional garnish. Never per-edit (billing + reviews half-states badly).
+  CHECKPOINT LOG (live, not retrospective): the turn a checkpoint resolves (advisor consulted, skipped, or n/a) ⇒ emit one visible line `CHECKPOINT: <post-model|post-first-surface|pre-final> = done|skipped(<reason>)|n/a(<tier>)` right there. Field-derived: end-gate attestation reconstructed from git log = backward-engineered compliance, omission-prone; forward-tracked lines make FINAL a copy job.
   red slice unresolvable ⇒ report exact failing test/diagnostic output, STOP; never continue on red
 
 RULE SKIPS: cannot or will not follow a rule ⇒ SAY SO before proceeding, never silently drop it. Skipped-but-undeclared rule discovered later = trust breach, worse than the skip itself.
@@ -48,7 +49,7 @@ FINAL (all fields MANDATORY, no omissions):
   ├─ SIZE tier chosen + why
   ├─ slices shipped + commit ids
   ├─ test counts (passed/assertions)
-  ├─ advisor checkpoints: state each of [post-model / post-first-surface / pre-final] as done, skipped+reason, or n/a-per-SIZE-tier — "skipped silently" is not an option
+  ├─ advisor checkpoints: COPY the live CHECKPOINT lines emitted during build, one per [post-model / post-first-surface / pre-final] — "skipped silently" is not an option; no line was emitted for a checkpoint ⇒ say so + declare as deviation (reconstruction from git log is the failure mode, not the fix)
   └─ deviations from this skill — "None" permitted ONLY when every rule above was followed as written
 
 SKYLORE DEPOSIT (with FINAL, sparse): durable decision made during build (library/pattern choice with real alternative) ⇒ lore_mark(kind=decision, why= names beaten alternative); machine/tooling quirk that cost a retry ⇒ lore_mark(kind=fact, why= names expected-instead). NEVER mark manifest-derivable facts, routine milestones, code structure. Skyrift workspace used ⇒ state its path + land/discard status in report.
