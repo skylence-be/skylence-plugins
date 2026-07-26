@@ -151,7 +151,20 @@ process.stdin.on("end", () => {
   // then the (unchanged) language + skylore steer assembled above. ABS_PATH_FACT
   // and FOCUS_LICENSE are unconditional, so there is always output on a valid
   // payload (malformed stdin still exits 0 silently above).
-  const parts = [ABS_PATH_FACT, FOCUS_LICENSE];
+  // Haiku bench 2026-07-26 (skylore 61/62): small models cannot construct the
+  // absolute path from the abstract rule alone and read a wrong-base zero-match
+  // as proof of absence. When the harness supplies cwd, name the CONCRETE root
+  // and the zero-match check in the same front-loaded part (appended, so the
+  // test's startsWith(ABS_PREFIX) contract holds).
+  const absFact = cwd
+    ? ABS_PATH_FACT +
+      " This session's project root is " +
+      cwd +
+      " - prefix relative paths with it, or pass cwd:" +
+      JSON.stringify(cwd) +
+      ' on the call. On "No matches found." check the "(searched ...)" line first: if it is not this root, fix the path - never conclude a file is absent from a wrong-base search.'
+    : ABS_PATH_FACT;
+  const parts = [absFact, FOCUS_LICENSE];
   const projectDir = process.env.CLAUDE_PROJECT_DIR || cwd;
   // #415 F1: assert git-lessness only for a KNOWN location with no .git up
   // the whole ancestor chain; an unknown location says nothing rather than
