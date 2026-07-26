@@ -4,17 +4,23 @@
  * None"; prose rules alone do not bind small models mid-flow).
  *
  * Two modes, selected by argv[2]:
- *  - "commit": PostToolUse on commit-shaped tool calls. When the transcript
- *    shows feature-loop-skill was invoked this session, inject a one-line
- *    reminder that the ADVISOR GATE fires now if the committed slice was the
- *    model slice or first user-facing surface. Reminder at the trigger
- *    moment, where a separate paragraph was proven to get dropped.
+ *  - "commit": PostToolUse on commit-shaped tool calls. When feature-loop-skill
+ *    was actually INVOKED this session (a real Skill tool_use call — see
+ *    skillInvoked below), inject a one-line reminder that the ADVISOR GATE
+ *    fires now if the committed slice was the model slice or first
+ *    user-facing surface. Reminder at the trigger moment, where a separate
+ *    paragraph was proven to get dropped.
  *  - "stop": Stop hook. When feature-loop-skill was invoked AND at least one
- *    commit-shaped call happened, refuse to end the session until the last
- *    assistant message carries the mandatory FINAL attestation (advisor
- *    checkpoints stated per-checkpoint + deviations field). Blocks at most
- *    LOOP_GATE_MAX_BLOCKS times per session, then fails open so a wedged
- *    model cannot loop forever.
+ *    commit-shaped call happened, refuse to end the session until SOME
+ *    assistant message this session (not necessarily the last one) carries
+ *    the mandatory FINAL attestation: a literal CHECKPOINT line copied from
+ *    the build, plus a deviations mention. Once attested, later Stops in the
+ *    same session (e.g. a post-build debrief turn) pass silently instead of
+ *    re-demanding the report (field case 2026-07-26: a haiku session's
+ *    Stop-gate re-fired on a DEBRIEF turn after FINAL had already been given
+ *    earlier that session — pure noise, burned tokens). Blocks at most
+ *    MAX_BLOCKS times per session, then fails open so a wedged model cannot
+ *    loop forever.
  *
  * Fail-open on any parse/fs error: exit 0, no output.
  */
@@ -23,8 +29,28 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const SKILL_MARKERS = ["feature-loop-skill"];
 const MAX_BLOCKS = 2;
+
+// FINAL must COPY a live CHECKPOINT line (1.5.22+ canon), not paraphrase or
+// reconstruct one: prose that merely discusses "advisor checkpoints" (a
+// plan, a dispatch brief, the skill's own contract text) must not satisfy
+// the gate once the scan below covers the whole session instead of just the
+// last message.
+const CHECKPOINT_LINE =
+  /checkpoint:\s*(post-model|post-first-surface|pre-final)\s*=\s*(done|skipped|n\/a)/i;
+
+// FINAL's "slices shipped + commit ids" field (feature-loop-skill/SKILL.md
+// FINAL:51): a bare "slices...shipped" mention. NOT coupled to a
+// same-line hex token: a commit id is often stated once elsewhere in the
+// FINAL (e.g. "see commit above") and a same-line hex requirement both
+// misses that real shape AND false-matches ordinary words that happen to
+// fall in [0-9a-f] (e.g. "none added" -> "added" reads as a hex run).
+// Precision comes from requiring this field AND the test-count field
+// alongside the CHECKPOINT line, not from over-fitting this one field.
+const SLICES_SHIPPED_LINE = /slices?\s+shipped/i;
+// FINAL's "test counts (passed/assertions)" field (SKILL.md FINAL:52): the
+// literal phrase, or a count next to passed/failed/tests/assertions.
+const TEST_COUNTS_LINE = /test\s*counts?|\b\d+\s*(passed|failed|tests?|assertions?)\b/i;
 
 function readStdin() {
   try {
@@ -44,8 +70,48 @@ function transcriptText(input) {
   }
 }
 
+// Parse the JSONL transcript once; invoke fn(contentBlocks) for every
+// assistant message. Shared by skillInvoked (looks for a Skill tool_use)
+// and attestationPresent (looks for a CHECKPOINT line in text blocks).
+function forEachAssistantMessage(text, fn) {
+  const lines = text.trim().split("\n");
+  for (const line of lines) {
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch (_e) {
+      continue; // skip unparseable line
+    }
+    const msg = entry.message;
+    if (entry.type === "assistant" && msg && Array.isArray(msg.content)) {
+      fn(msg.content);
+    }
+  }
+}
+
+// Real invocation only: a Skill tool_use call whose input names
+// feature-loop-skill (bare or namespaced, e.g. "skyline-claude:feature-loop-skill").
+// Deliberately NOT a substring match on the raw transcript text: the ambient
+// available-skills listing names every INSTALLED skill, including
+// feature-loop-skill, in EVERY session on a box with this plugin present —
+// whether or not the skill was ever invoked. A substring test gates every
+// committing session on the box, not just build sessions (worse false
+// positive than the debrief case this fix targets).
 function skillInvoked(text) {
-  return SKILL_MARKERS.some((m) => text.includes(m));
+  let found = false;
+  forEachAssistantMessage(text, (content) => {
+    if (found) return;
+    for (const block of content) {
+      if (block.type === "tool_use" && block.name === "Skill") {
+        const arg = String((block.input && block.input.skill) || "");
+        if (arg === "feature-loop-skill" || arg.endsWith(":feature-loop-skill")) {
+          found = true;
+          break;
+        }
+      }
+    }
+  });
+  return found;
 }
 
 // Commit-shaped: skyline git_commit tools, or a run/Bash call whose input
@@ -57,30 +123,50 @@ function isCommitCall(toolName, toolInput) {
   return /"git"\s*,\s*"commit"|git commit/.test(asText);
 }
 
-function lastAssistantText(text) {
-  // Transcript is JSONL; walk lines backwards for the last assistant text block.
-  const lines = text.trim().split("\n");
-  for (let i = lines.length - 1; i >= 0; i--) {
-    try {
-      const entry = JSON.parse(lines[i]);
-      const msg = entry.message;
-      if (entry.type === "assistant" && msg && Array.isArray(msg.content)) {
-        const t = msg.content
-          .filter((c) => c.type === "text")
-          .map((c) => c.text)
-          .join("\n");
-        if (t.trim()) return t;
+// (a) commit-activity check: same real-tool_use discipline as
+// skillInvoked() above — scan assistant tool_use blocks for a
+// commit-shaped call, never a raw substring test over the whole
+// transcript. A skill's own auto-injected instructional body (delivered
+// as plain assistant-turn TEXT, e.g. feature-loop-skill/SKILL.md's
+// literal "...git_commit green slice") must never stand in for an actual
+// commit (Finding 1, review bounce todo 69 c245).
+function commitActivityInTranscript(text) {
+  let found = false;
+  forEachAssistantMessage(text, (content) => {
+    if (found) return;
+    for (const block of content) {
+      if (block.type === "tool_use" && isCommitCall(block.name, block.input)) {
+        found = true;
+        break;
       }
-    } catch (_e) {
-      /* skip unparseable line */
     }
-  }
-  return "";
+  });
+  return found;
 }
 
-function attestationPresent(finalText) {
-  const t = finalText.toLowerCase();
-  return t.includes("advisor checkpoint") && t.includes("deviation");
+// FINAL attestation: a literal CHECKPOINT line (copied, not reconstructed)
+// plus a deviations mention, on ANY assistant message this session — not
+// just the last one. FINAL can land several turns before the Stop hook
+// actually fires (a debrief turn, a follow-up question); requiring it to be
+// the LAST message is what produced the field false positive.
+function attestationPresent(text) {
+  let found = false;
+  forEachAssistantMessage(text, (content) => {
+    if (found) return;
+    const t = content
+      .filter((c) => c.type === "text")
+      .map((c) => c.text)
+      .join("\n");
+    if (
+      CHECKPOINT_LINE.test(t) &&
+      t.toLowerCase().includes("deviation") &&
+      SLICES_SHIPPED_LINE.test(t) &&
+      TEST_COUNTS_LINE.test(t)
+    ) {
+      found = true;
+    }
+  });
+  return found;
 }
 
 function blockCountFile(input) {
@@ -134,13 +220,15 @@ function main() {
   }
 
   if (mode === "stop") {
-    // Only gate sessions that actually built something.
-    if (!/git_commit|"git"\s*,\s*"commit"|git commit/.test(text)) process.exit(0);
-    if (attestationPresent(lastAssistantText(text))) process.exit(0);
+    // (a) Only gate sessions that actually built something this session.
+    if (!commitActivityInTranscript(text)) process.exit(0);
+    // (b) FINAL already given earlier this session: later Stops pass silently.
+    if (attestationPresent(text)) process.exit(0);
+    // (c) Genuine in-build stop, no attestation ever emitted: keep blocking.
     const n = bumpBlockCount(blockCountFile(input));
     if (n > MAX_BLOCKS) process.exit(0); // fail-open, never wedge a session
     process.stderr.write(
-      "feature-loop-skill FINAL attestation missing. Before ending: produce the mandatory FINAL report — slices shipped + commit ids; test counts; advisor checkpoints EACH stated as done or skipped+reason (post-model / post-first-surface / pre-final); deviations from the skill, where \"None\" is permitted only if every rule was followed as written. If a checkpoint was skipped, say so explicitly now."
+      "feature-loop-skill FINAL attestation missing. Before ending: produce the mandatory FINAL report — slices shipped + commit ids; test counts; advisor checkpoints: COPY the live CHECKPOINT lines emitted during build, one per [post-model / post-first-surface / pre-final] — do not restate or reconstruct them from memory; a checkpoint with no CHECKPOINT line emitted must be said so and declared a deviation; deviations from the skill, where \"None\" is permitted only if every rule was followed as written."
     );
     process.exit(2);
   }
