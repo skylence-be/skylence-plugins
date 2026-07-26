@@ -40,12 +40,17 @@ const CHECKPOINT_LINE =
   /checkpoint:\s*(post-model|post-first-surface|pre-final)\s*=\s*(done|skipped|n\/a)/i;
 
 // FINAL's "slices shipped + commit ids" field (feature-loop-skill/SKILL.md
-// FINAL:51): a "slices shipped" line naming a commit-id-shaped hex token,
-// not just a bare mention of the phrase.
-const SLICES_SHIPPED_LINE = /slices?\s+shipped[^\n]*\b[0-9a-f]{4,40}\b/i;
-// FINAL's "test counts (passed/assertions)" field (SKILL.md FINAL:52): a
-// numeric count next to "test counts", or a bare "<N> passed/failed".
-const TEST_COUNTS_LINE = /test\s*counts?[^\n]*\d|\b\d+\s+(passed|failed)\b/i;
+// FINAL:51): a bare "slices...shipped" mention. NOT coupled to a
+// same-line hex token: a commit id is often stated once elsewhere in the
+// FINAL (e.g. "see commit above") and a same-line hex requirement both
+// misses that real shape AND false-matches ordinary words that happen to
+// fall in [0-9a-f] (e.g. "none added" -> "added" reads as a hex run).
+// Precision comes from requiring this field AND the test-count field
+// alongside the CHECKPOINT line, not from over-fitting this one field.
+const SLICES_SHIPPED_LINE = /slices?\s+shipped/i;
+// FINAL's "test counts (passed/assertions)" field (SKILL.md FINAL:52): the
+// literal phrase, or a count next to passed/failed/tests/assertions.
+const TEST_COUNTS_LINE = /test\s*counts?|\b\d+\s*(passed|failed|tests?|assertions?)\b/i;
 
 function readStdin() {
   try {

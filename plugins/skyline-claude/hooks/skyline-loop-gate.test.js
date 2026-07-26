@@ -332,6 +332,28 @@ test("Finding 2 repro: message quotes an illustrative CHECKPOINT line while expl
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
+test("positive fixture: FINAL in the skill's prescribed tree shape (SKILL.md FINAL:48-54) satisfies attestation: Stop passes silently", () => {
+  const tmp = freshTmp();
+  const finalTreeText =
+    "FINAL:\n" +
+    "├─ SIZE tier: MEDIUM, standard build\n" +
+    "├─ slices shipped + commit ids: 1 slice, commit a1b2c3d\n" +
+    "├─ test counts (passed/assertions): 16 passed, 0 failed\n" +
+    "├─ advisor checkpoints:\n" +
+    "CHECKPOINT: post-model = done\n" +
+    "CHECKPOINT: pre-final = done\n" +
+    "└─ deviations from this skill: None";
+  const t = writeTranscript(tmp, [
+    assistantSkillInvoke("feature-loop-skill"),
+    assistantGitCommit(),
+    assistantText(finalTreeText),
+  ]);
+  const { code, err } = runStop(t, uniqueSessionId("final-tree-shape"));
+  assert.equal(code, 0, "a FINAL in the skill's own prescribed field shape must satisfy attestation");
+  assert.equal(err, "");
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
 // --- commit mode: shares the same invocation detector -----------------------
 
 test("commit mode: reminder fires when feature-loop-skill was really invoked", () => {
