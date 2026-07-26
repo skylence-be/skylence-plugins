@@ -3,82 +3,16 @@ name: feature-loop
 description: The skyline-native build loop — orientation ritual, route-aware semantic posture, vertical slices that each end green, anchor-based editing, batched diagnostics, test-anchored fixes, commit checkpoints, and advisor cadence. Invoke PROACTIVELY, without being asked, at the start of ANY implementation work in a workspace where the skyline MCP tools are available — building a feature, creating an app, adding an endpoint, a refactor with behavior changes. Not for pure investigation or single-line fixes. Includes a Laravel/Livewire profile.
 ---
 
-# feature-loop: build features the skyline way
+You are implementing something in a skyline workspace. Follow this loop exactly; every rule was measured or field-derived and deviating recreates known failure modes. The unit of work is a vertical slice that ends green. The unit of editing is a ¶path#TAG anchor, never a re-read.
 
-You are about to implement something. Do not improvise a workflow: this loop
-exists because each rule below was measured or field-derived (skyline guide +
-2026-07-26 haiku benches). The unit of work is a VERTICAL SLICE that ends
-green; the unit of editing is an ANCHOR, never a re-read.
+Pass an absolute path or cwd= on every skyline call; the daemon does not share your working directory, and a wrong-base zero-match must never be read as absence — check the (searched ...) line names your repo root before concluding anything is missing.
 
-## Phase 0 — orient (five calls, once)
+Orient exactly once, five calls: tree on the absolute repo root; git (status) for working-tree truth, its lines carry edit anchors; lore_recall with task words plus stack words, unscoped, and consume hits instead of re-deriving decisions; lsp_warm once on a source file of the language you will edit; read the dependency manifest (composer.json, package.json, Cargo.toml) before assuming any library is or is not installed.
 
-1. `tree` on the ABSOLUTE repo root (the daemon does not share your cwd —
-   pass absolute paths or `cwd=` on every skyline call, always).
-2. `git status` — working-tree truth; its lines carry edit anchors.
-3. `lore_recall` — task words + stack words, UNSCOPED. Consume hits instead
-   of re-deriving decisions.
-4. `lsp_warm` once on a source file of the language you will edit. Read
-   `project_layer_state` and set your semantic posture (next section).
-5. Read the dependency manifest (composer.json / package.json / Cargo.toml)
-   before assuming a library is or is not installed.
+Your semantic posture is decided by lsp_warm's project_layer_state field, not by hope. If it is fresh and ready_semantic is true, use the full semantic surface: definition, references, and on the PHP mcp route symbol_card and impact, and trust diagnostics. If it is unprobed_lsp_route, this box serves the language on the plain LSP route: diagnostics works, definition resolves same-file only, references is unreliable, symbol_card/impact/unreferenced refuse every call so do not invoke them, cross-file questions are answered by grep plus tests, and stdlib "Undefined function" errors may be stale false positives. If it is mcp_resolve_failed or mcp_call_failed, routing self-healed to the LSP route: same posture as unprobed_lsp_route, and do not chase the mcp route mid-task — a daemon restart retries it. If it is stale, reindexing, or unverified, structural navigation is fine but re-warm per the hint before trusting semantics. On a repo with a local vendor/ directory, "class X is not covered by any mounted dependency index" info-notes are expected and are not errors.
 
-## Semantic posture — decided by warm, not by hope
+Plan the feature as three to eight vertical slices, each independently shippable: data model first, then the first UI surface, then each behavior, then polish. For every slice: generate or locate, edit from anchors, check, prove, checkpoint. Generate scaffolding with run using an argv array such as ["php","artisan","make:model","<Name>","-mf"], never a shell string, and submit anything slow with background:true then run_wait. Locate with grep or find and paste the returned ¶path#TAG header straight into edit; never read a file you already hold an anchor for; put multiple hunks in one file into one edit call with stacked ops; put a change spanning files (model plus component plus test) into one multi-section edit with verify:true, which applies atomically and rolls back whole on any reject. Check the slice with ONE diagnostics call passing paths:[...] for every touched source file, never one call per file. Prove the slice with the test tool: failures come back with edit anchors, fix directly from them without re-locating. An edit to a template (.blade.php, .vue) is syntax-checked only by verify:true; runtime component and asset resolution fails invisibly to any reparse, so pair every template change with a route-level render test (assertOk) in the same slice. Checkpoint by running the formatter (for example pint --dirty) via run, then git_commit the green slice; small commits are your rollback points. Leave the loop only when a slice cannot go green: report the exact failing test or diagnostic output and stop, never push on with red.
 
-| `project_layer_state` | Posture |
-|---|---|
-| `fresh` (ready_semantic true) | Full semantic surface: `definition`, `references`, `symbol_card`/`impact` (PHP mcp route). Trust diagnostics. |
-| `unprobed_lsp_route` | LSP route serves this box. `diagnostics` works; `definition` resolves same-file only; `references` is unreliable; `symbol_card`/`impact`/`unreferenced` will refuse. Cross-file questions: `grep` + tests are the truth. Treat stdlib "Undefined function" errors as possibly stale. |
-| `mcp_resolve_failed` / `mcp_call_failed` | Same as above (routing self-healed); a daemon restart retries the mcp route — do not chase it mid-task. |
-| `stale` / `reindexing` / `unverified` | Structural nav fine; re-warm per the hint before trusting semantics. |
+If an advisor or review tool is active in this session, consult it at slice boundaries — after the model slice, after the first UI surface, before the final report — and take its findings as review input. Do not consult it per edit; it bills tokens and reviews half-states badly.
 
-"class X is not covered by any mounted dependency index" info-notes on a
-local-`vendor/` repo are EXPECTED, not errors.
-
-## The slice loop
-
-Plan the feature as 3–8 vertical slices, each independently shippable
-(data model → first UI surface → each behavior → polish). Then per slice:
-
-1. **Generate or locate.** Scaffolding via `run` with an ARGV ARRAY
-   (`["php","artisan","make:model","<Name>","-mf"]`) — never a shell string;
-   background anything slow (`background:true`, then `run_wait`).
-2. **Edit from anchors.** `grep` (or `find`) → paste the `¶path#TAG` header
-   straight into `edit`. Never read a file you already have an anchor for.
-   Multiple hunks in one file = ONE edit call with stacked ops. A change
-   spanning files (model + component + test) = ONE multi-section edit with
-   `verify:true` — it applies atomically and rolls back whole on any reject.
-3. **Check the slice.** ONE `diagnostics` call with `paths:[...]` for every
-   touched source file — not one call per file.
-4. **Prove the slice.** `test` (the tool): failures come back with edit
-   anchors — fix directly from them, no re-locating. A template/view edit
-   (`.blade.php`, `.vue`) is syntax-checked only by `verify:true`; pair it
-   with a route-level render test (`assertOk`) in the same slice, because
-   runtime component/asset resolution fails invisibly to any reparse.
-5. **Checkpoint.** Format (`run` the formatter, e.g. `pint --dirty`), then
-   `git_commit` the green slice. Small commits are your rollback points.
-
-Escalate out of the loop only when a slice cannot go green: state what
-failed with the exact test/diagnostic output, never push on with red.
-
-## Advisor cadence
-
-If an advisor/review tool is active in this session, consult it at SLICE
-BOUNDARIES (after the model slice, after the first UI slice, before final)
-and take its findings as review input. Do not consult it per-edit; it
-bills tokens and reviews half-states badly.
-
-## Laravel / Livewire profile
-
-- Slice order for a CRUD app: migration + model + factory → Livewire
-  component + blade + route → create/toggle/edit/delete behaviors (one
-  slice each if non-trivial) → filters/scoping/validation → seeder + empty
-  states + polish.
-- Scaffold with artisan via `run` argv: `make:model X -mf`,
-  `make:livewire XList`, `php artisan migrate` after each schema slice.
-- Livewire: keep component state minimal; validate in the component
-  (`rules()`); every component gets a feature test that mounts it and a
-  route render test (`assertOk`).
-- Auth scoping: every query through the owning user relationship — write
-  the test that proves another user sees nothing in the same slice.
-- `pint --dirty` before every commit; run the whole suite (`test`) before
-  the final report.
+Laravel/Livewire profile. Slice order for a CRUD feature: migration plus model plus factory, then Livewire component plus blade plus route, then one slice per non-trivial behavior (create, toggle, inline edit, delete), then filters and scoping and validation, then seeder and empty states and polish. Scaffold with artisan through run argv: make:model <Name> -mf, make:livewire <Name>List, php artisan migrate after each schema slice. Keep Livewire component state minimal and validate in the component via rules(); every component gets a feature test that mounts it and a route render test asserting ok. Scope every query through the owning user relationship and, in the same slice, write the test proving another user sees nothing. Run pint --dirty before every commit and the whole suite via the test tool before the final report.
