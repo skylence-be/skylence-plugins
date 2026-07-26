@@ -9,6 +9,7 @@ PATHS: absolute path or cwd= on EVERY skyline call. Zero-match ≠ absence until
 
 ORIENT:
 lore_recall(symptom words + component, unscoped) FIRST — known quirk may BE answer → git status + git diff (recent change = prime suspect) → lsp_warm if semantic tools needed (posture per project_layer_state, same rules as feature-loop-skill)
+manifest names stack (composer.json: filament ⇒ filament+livewire+laravel; livewire ⇒ livewire+laravel; laravel ⇒ laravel; Cargo.toml ⇒ rust; go.mod ⇒ go) ⇒ invoke EVERY installed skill named `<stack>-blueprint-skill` NOW, before REPRODUCE; skill absent ⇒ proceed, zero friction, no error.
 
 REPRODUCE (before ANY fix):
   failing test exists ⇒ test tool → capture exact failure + anchor
@@ -32,6 +33,7 @@ HYPOTHESIS DISCIPLINE:
 
 FIX:
   minimal edit via ¶path#TAG anchors (stacked ops, multi-file atomic + verify:true when spanning)
+  template/view edit (.blade.php, .vue): verify:true reparse only, structural damage (root-element count, unbalanced tags) invisible to it ⇒ re-read edited range IMMEDIATELY after edit, pair with request-level render test same change
   regression test in SAME change — red before fix, green after; symptom without test coverage gets coverage now
   diagnostics(batch) → full suite via test tool → formatter via run → git_commit
 
