@@ -28,9 +28,15 @@ SLICE CYCLE (repeat per slice):
   ├─ test: failures return edit anchors ⇒ fix directly, no re-locating
   ├─ template/view edits: verify:true = syntax only; runtime component/asset resolution invisible to reparse ⇒ pair with request-level render test same slice
   ├─ data queries owned by user/tenant ⇒ same slice adds test proving other user sees nothing
-  └─ checkpoint: formatter via run → git_commit green slice (rollback points)
+  ├─ checkpoint: formatter via run → git_commit green slice (rollback points)
+  └─ ADVISOR GATE (if advisor/review tool active): slice just committed = model slice OR first user-facing surface ⇒ consult advisor NOW, findings = review input, before next slice starts. Part of cycle, not optional garnish. Never per-edit (billing + reviews half-states badly).
   red slice unresolvable ⇒ report exact failing test/diagnostic output, STOP; never continue on red
 
-ADVISOR (if active): consult at slice boundaries only (post-model, post-first-surface, pre-final); findings = review input. Never per-edit (billing + reviews half-states badly).
+RULE SKIPS: cannot or will not follow a rule ⇒ SAY SO before proceeding, never silently drop it. Skipped-but-undeclared rule discovered later = trust breach, worse than the skip itself.
 
-FINAL: full suite via test tool → report slices shipped, test counts, deviations.
+FINAL (all fields MANDATORY, no omissions):
+  full suite via test tool → report:
+  ├─ slices shipped + commit ids
+  ├─ test counts (passed/assertions)
+  ├─ advisor checkpoints: consulted at [post-model? post-first-surface? pre-final?] — state each as done or skipped+reason; "skipped silently" is not an option
+  └─ deviations from this skill — "None" permitted ONLY when every rule above was followed as written
