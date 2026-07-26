@@ -15,9 +15,16 @@ POSTURE ← lsp_warm.project_layer_state:
   unprobed_lsp_route           ⇒ diagnostics OK; definition same-file ONLY; references unreliable; symbol_card/impact/unreferenced REFUSE — never call; cross-file questions ⇒ grep+tests; stdlib undefined-symbol errors possibly stale
   mcp_resolve_failed | mcp_call_failed ⇒ same as unprobed_lsp_route; never chase mcp route mid-task (daemon restart retries)
   stale | reindexing | unverified ⇒ structural nav OK; re-warm per hint before trusting semantics
+  null (rust/go — field is php-only) ⇒ posture from flags directly: ready_semantic:true ⇒ definition/references/rename_symbol usable + trust diagnostics; else structural nav only; symbol_card/impact/unreferenced never exist for these languages
 Repo with own dependency dir: "not covered by any mounted dependency index" info-notes = expected, not errors.
 
-PLAN: 3–8 vertical slices, each shippable. Order: data model → first user-facing surface → each behavior → polish.
+SIZE (decide at plan time):
+  single-line/trivial fix ⇒ this skill does not apply (description exclusion)
+  simple feature ⇒ 2–3 slices; advisor pre-final consult only
+  standard feature ⇒ 3–8 slices; full advisor cadence
+  does NOT fit 8 slices or one session's context ⇒ PROGRAM, not feature: STOP, say so, decompose into feature-sized units and run this loop per unit (or hand to an orchestrator); never stretch one session over an epic
+
+PLAN: vertical slices per SIZE, each shippable. Order: data model → first user-facing surface → each behavior → polish.
 
 ISOLATION (decide at plan time): shared checkout + other agents/humans may touch it, OR build experimental/possibly-discarded ⇒ skyrift create <slug> from repo MAIN working tree (not a linked worktree) → work in printed path. Inside .skyrift-workspace: disposable detached clone — land committed work per workspace rules (promote/push from branch), NEVER git add -A (untracked .skyrift-workspace marker), skyrift discard when abandoned. Solo uncontested checkout ⇒ skip, work in place.
 
@@ -38,9 +45,10 @@ RULE SKIPS: cannot or will not follow a rule ⇒ SAY SO before proceeding, never
 
 FINAL (all fields MANDATORY, no omissions):
   full suite via test tool → report:
+  ├─ SIZE tier chosen + why
   ├─ slices shipped + commit ids
   ├─ test counts (passed/assertions)
-  ├─ advisor checkpoints: consulted at [post-model? post-first-surface? pre-final?] — state each as done or skipped+reason; "skipped silently" is not an option
+  ├─ advisor checkpoints: state each of [post-model / post-first-surface / pre-final] as done, skipped+reason, or n/a-per-SIZE-tier — "skipped silently" is not an option
   └─ deviations from this skill — "None" permitted ONLY when every rule above was followed as written
 
 SKYLORE DEPOSIT (with FINAL, sparse): durable decision made during build (library/pattern choice with real alternative) ⇒ lore_mark(kind=decision, why= names beaten alternative); machine/tooling quirk that cost a retry ⇒ lore_mark(kind=fact, why= names expected-instead). NEVER mark manifest-derivable facts, routine milestones, code structure. Skyrift workspace used ⇒ state its path + land/discard status in report.
