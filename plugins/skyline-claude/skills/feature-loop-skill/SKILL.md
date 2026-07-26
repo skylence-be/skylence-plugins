@@ -19,6 +19,8 @@ Repo with own dependency dir: "not covered by any mounted dependency index" info
 
 PLAN: 3–8 vertical slices, each shippable. Order: data model → first user-facing surface → each behavior → polish.
 
+ISOLATION (decide at plan time): shared checkout + other agents/humans may touch it, OR build experimental/possibly-discarded ⇒ skyrift create <slug> from repo MAIN working tree (not a linked worktree) → work in printed path. Inside .skyrift-workspace: disposable detached clone — land committed work per workspace rules (promote/push from branch), NEVER git add -A (untracked .skyrift-workspace marker), skyrift discard when abandoned. Solo uncontested checkout ⇒ skip, work in place.
+
 SLICE CYCLE (repeat per slice):
   generate/locate → edit(anchors) → diagnostics(batch) → test → format+commit
   ├─ generate: run with argv ARRAY, never shell string; slow ⇒ background:true → run_wait
@@ -40,3 +42,5 @@ FINAL (all fields MANDATORY, no omissions):
   ├─ test counts (passed/assertions)
   ├─ advisor checkpoints: consulted at [post-model? post-first-surface? pre-final?] — state each as done or skipped+reason; "skipped silently" is not an option
   └─ deviations from this skill — "None" permitted ONLY when every rule above was followed as written
+
+SKYLORE DEPOSIT (with FINAL, sparse): durable decision made during build (library/pattern choice with real alternative) ⇒ lore_mark(kind=decision, why= names beaten alternative); machine/tooling quirk that cost a retry ⇒ lore_mark(kind=fact, why= names expected-instead). NEVER mark manifest-derivable facts, routine milestones, code structure. Skyrift workspace used ⇒ state its path + land/discard status in report.

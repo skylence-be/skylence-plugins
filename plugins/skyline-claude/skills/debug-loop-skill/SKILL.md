@@ -21,7 +21,8 @@ ISOLATE:
   ├─ prior command output ⇒ run_query on teed raw path, NEVER re-run to re-see
   ├─ logs ⇒ devlog_tail (compressed), not raw tail through shell
   ├─ code ⇒ grep with anchors; diagnostics ONE call paths:[suspects]
-  └─ external state change since last-known-good ⇒ read since_tag delta, not full re-read
+  ├─ external state change since last-known-good ⇒ read since_tag delta, not full re-read
+  └─ destructive probe needed (bisect, dependency downgrade, migration replay, state-corrupting repro) ⇒ skyrift create <slug> from repo MAIN tree → probe inside disposable workspace → skyrift discard after; NEVER destructive-probe shared checkout
 
 HYPOTHESIS DISCIPLINE:
   one hypothesis ⇒ one CHEAPEST disproof probe ⇒ result
@@ -34,4 +35,4 @@ FIX:
   regression test in SAME change — red before fix, green after; symptom without test coverage gets coverage now
   diagnostics(batch) → full suite via test tool → formatter via run → git_commit
 
-REPORT: root cause (mechanism, not narrative) + falsified-hypothesis trail + fix location + regression test name + suite counts. Cause worth remembering machine-wide ⇒ lore_mark(kind=fact, why= names expected-instead).
+REPORT: root cause (mechanism, not narrative) + falsified-hypothesis trail + fix location + regression test name + suite counts. Cause worth remembering machine-wide ⇒ lore_mark(kind=fact, why= names expected-instead); fix invalidates older mark ⇒ lore_mark replacement then lore_supersede(old, new), never leave stale mark outranking truth.

@@ -8,6 +8,7 @@ Reviewing changes in skyline workspace. Review ARTIFACTS, never author intent. R
 PATHS: absolute path or cwd= on EVERY skyline call.
 
 SCOPE:
+  lore_recall(changed-surface words, unscoped) BEFORE judging — prior marked decision may explain "why done this way"; finding contradicting a marked decision ⇒ cite mark, question design change, not defect
   git diff (branch/refs) or git show (commit) → FULL diff, never summary/description — squash-merge ships EVERYTHING on branch; unrecognized commit or hunk ⇒ finding, review pauses until explained
   diff sections carry ¶path#TAG anchors → cite findings by them
 
@@ -16,6 +17,7 @@ VERIFY CLAIMS (claim = hypothesis until re-checked):
   "command outputs X" ⇒ re-run via run; exit_code first line authoritative; exit codes through pipes lie
   "N occurrences updated" ⇒ grep count yourself
   perf/size claims ⇒ measure or mark unverified
+  running reviewed code would dirty shared checkout (checkout PR branch, install deps, seed data) ⇒ skyrift create <slug> from repo MAIN tree → verify inside disposable workspace → skyrift discard after review
 
 ADVERSARIAL READ (per changed surface):
   ├─ failure scenario hunt: concrete inputs/state ⇒ wrong output/crash; no concrete scenario ⇒ not a correctness finding
