@@ -124,6 +124,120 @@ const SKYRIFT_WORKSPACE_FACT =
 // prefer a CoW workspace to a full clone for isolated parallel work.
 const SKYRIFT_FANOUT_HINT =
   "For isolated parallel work, `skyrift create` a copy-on-write workspace (clonefile/reflink, near-free) instead of a full clone or sharing the checkout; `skyrift gc` only previews unless given `--apply --force`.";
+
+// Lane H: blueprint invocation enforcement. A manifest names a stack; if its
+// <stack>-blueprint-skill is actually installed, the primer tells the agent
+// to invoke it before the first edit. feature-loop-skill 1.5.24's own ORIENT
+// prose names the same detection as a follow-on sentence after its numbered
+// pipeline; that instruction-to-invoke is an unforced hop (field evidence:
+// haiku invoked feature-loop-skill, then never invoked any blueprint skill).
+// This SURFACE makes the hop unforced no longer, at SessionStart, before
+// ORIENT ever runs.
+const STACK_BLUEPRINT_CHAINS = {
+  filament: [
+    "filament-blueprint-skill",
+    "livewire-blueprint-skill",
+    "laravel-blueprint-skill",
+  ],
+  livewire: ["livewire-blueprint-skill", "laravel-blueprint-skill"],
+  laravel: ["laravel-blueprint-skill"],
+  rust: ["rust-blueprint-skill"],
+  go: ["go-blueprint-skill"],
+};
+
+// Mirrors feature-loop-skill 1.5.24 ORIENT semantics exactly: composer.json
+// substring "filament" implies the whole laravel+livewire+filament chain
+// (livewire/livewire is often only a transitive dependency of
+// filament/filament and may never appear as a direct require); "livewire"
+// implies laravel; "laravel" alone is terminal. Cargo.toml/go.mod map to
+// their own single-skill chain.
+function detectStackChain(cwd) {
+  if (!cwd) return null;
+  try {
+    const composerPath = path.join(cwd, "composer.json");
+    if (fs.existsSync(composerPath)) {
+      const content = fs.readFileSync(composerPath, "utf8");
+      if (content.includes("filament")) return STACK_BLUEPRINT_CHAINS.filament;
+      if (content.includes("livewire")) return STACK_BLUEPRINT_CHAINS.livewire;
+      if (content.includes("laravel")) return STACK_BLUEPRINT_CHAINS.laravel;
+      return null;
+    }
+    if (hasMarker(cwd, "Cargo.toml")) return STACK_BLUEPRINT_CHAINS.rust;
+    if (hasMarker(cwd, "go.mod")) return STACK_BLUEPRINT_CHAINS.go;
+  } catch (_e) {
+    /* fail-open: no chain */
+  }
+  return null;
+}
+
+// ~/.claude by default; overridable so tests never depend on this machine's
+// real installed plugins (mirrors hasLoreBank's SKYLORE_DB override above).
+function claudeConfigDir() {
+  const explicit = process.env.CLAUDE_CONFIG_DIR;
+  if (explicit) return explicit;
+  const home = process.env.HOME || process.env.USERPROFILE;
+  if (!home) return null;
+  return path.join(home, ".claude");
+}
+
+// installed_plugins.json's installPath entries are the actually-installed
+// copies; the marketplaces/ source tree (browsable, not necessarily
+// installed) and a stale cache/ version are not enough to call a skill
+// installed. Missing/malformed file => no paths, fail-open to "not
+// installed" rather than throwing.
+function installedPluginPaths() {
+  const root = claudeConfigDir();
+  if (!root) return [];
+  try {
+    const raw = fs.readFileSync(
+      path.join(root, "plugins", "installed_plugins.json"),
+      "utf8"
+    );
+    const data = JSON.parse(raw);
+    const plugins = (data && data.plugins) || {};
+    const paths = [];
+    for (const key of Object.keys(plugins)) {
+      for (const install of plugins[key] || []) {
+        if (install && install.installPath) paths.push(install.installPath);
+      }
+    }
+    return paths;
+  } catch (_e) {
+    return [];
+  }
+}
+
+function blueprintSkillInstalled(skillName, pluginPaths) {
+  for (const installPath of pluginPaths) {
+    try {
+      if (fs.existsSync(path.join(installPath, "skills", skillName))) {
+        return true;
+      }
+    } catch (_e) {
+      /* skip this install path */
+    }
+  }
+  return false;
+}
+
+// One imperative line naming every INSTALLED skill in the detected chain;
+// empty when the chain is null or none of it is installed (zero noise,
+// never tell the agent to invoke a skill that is not there).
+function blueprintInvocationContext(cwd) {
+  const chain = detectStackChain(cwd);
+  if (!chain) return "";
+  const pluginPaths = installedPluginPaths();
+  const installed = chain.filter((name) =>
+    blueprintSkillInstalled(name, pluginPaths)
+  );
+  if (installed.length === 0) return "";
+  const names = installed.map((name) => "`" + name + "`").join(", ");
+  return (
+    "Implementing or fixing in this repo: invoke " +
+    names +
+    " (Skill tool) at plan time, before the first edit."
+  );
+}
 let buf = "";
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", (d) => (buf += d));
@@ -141,6 +255,11 @@ process.stdin.on("end", () => {
     context = "Skyline semantic PHP tools are active here. For symbol questions (where is X defined, who calls Y, which same-named class resolves), don't conclude from text counts: run skyline_symbol_card(path, line, symbol) or skyline_references and reconcile. A name_only hit is unconfirmed until you verify its receiver, and if symbol_card's count disagrees with a grep count, decompose by receiver. Read symbol_card's provenance and freshness before assuming the index is degraded; use skyline_grep for literal text only.";
   } else if (hasMarker(cwd, "Cargo.toml") || hasMarker(cwd, "go.mod")) {
     context = "Skyline semantic tools active. For symbol questions, don't conclude from grep counts: run skyline_definition, skyline_references, or skyline_implementation and reconcile any unproven hit by checking its receiver; read the tool's freshness before assuming degradation.";
+  }
+
+  const blueprintLine = blueprintInvocationContext(cwd);
+  if (blueprintLine) {
+    context = context ? context + "\n\n" + blueprintLine : blueprintLine;
   }
 
   if (hasLoreBank()) {
