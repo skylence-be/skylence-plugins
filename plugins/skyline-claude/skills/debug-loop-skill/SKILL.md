@@ -33,7 +33,7 @@ HYPOTHESIS DISCIPLINE:
 
 FIX:
   minimal edit via ¶path#TAG anchors (stacked ops, multi-file atomic + verify:true when spanning)
-  template/view edit (.blade.php, .vue): verify:true reparse only, structural damage (root-element count, unbalanced tags) invisible to it ⇒ re-read edited range IMMEDIATELY after edit, pair with request-level render test same change
+  template/view edit: verify:true reparse only, structural damage (root-element count, unbalanced tags) invisible to it ⇒ re-read edited range IMMEDIATELY after edit, pair with request-level render test same change
   regression test in SAME change — red before fix, green after; symptom without test coverage gets coverage now
   diagnostics(batch) → full suite via test tool → formatter via run → git_commit
 

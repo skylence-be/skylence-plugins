@@ -39,6 +39,14 @@ const MAX_BLOCKS = 2;
 const CHECKPOINT_LINE =
   /checkpoint:\s*(post-model|post-first-surface|pre-final)\s*=\s*(done|skipped|n\/a)/i;
 
+// FINAL's "slices shipped + commit ids" field (feature-loop-skill/SKILL.md
+// FINAL:51): a "slices shipped" line naming a commit-id-shaped hex token,
+// not just a bare mention of the phrase.
+const SLICES_SHIPPED_LINE = /slices?\s+shipped[^\n]*\b[0-9a-f]{4,40}\b/i;
+// FINAL's "test counts (passed/assertions)" field (SKILL.md FINAL:52): a
+// numeric count next to "test counts", or a bare "<N> passed/failed".
+const TEST_COUNTS_LINE = /test\s*counts?[^\n]*\d|\b\d+\s+(passed|failed)\b/i;
+
 function readStdin() {
   try {
     return fs.readFileSync(0, "utf8");
@@ -110,6 +118,27 @@ function isCommitCall(toolName, toolInput) {
   return /"git"\s*,\s*"commit"|git commit/.test(asText);
 }
 
+// (a) commit-activity check: same real-tool_use discipline as
+// skillInvoked() above — scan assistant tool_use blocks for a
+// commit-shaped call, never a raw substring test over the whole
+// transcript. A skill's own auto-injected instructional body (delivered
+// as plain assistant-turn TEXT, e.g. feature-loop-skill/SKILL.md's
+// literal "...git_commit green slice") must never stand in for an actual
+// commit (Finding 1, review bounce todo 69 c245).
+function commitActivityInTranscript(text) {
+  let found = false;
+  forEachAssistantMessage(text, (content) => {
+    if (found) return;
+    for (const block of content) {
+      if (block.type === "tool_use" && isCommitCall(block.name, block.input)) {
+        found = true;
+        break;
+      }
+    }
+  });
+  return found;
+}
+
 // FINAL attestation: a literal CHECKPOINT line (copied, not reconstructed)
 // plus a deviations mention, on ANY assistant message this session — not
 // just the last one. FINAL can land several turns before the Stop hook
@@ -123,7 +152,12 @@ function attestationPresent(text) {
       .filter((c) => c.type === "text")
       .map((c) => c.text)
       .join("\n");
-    if (CHECKPOINT_LINE.test(t) && t.toLowerCase().includes("deviation")) {
+    if (
+      CHECKPOINT_LINE.test(t) &&
+      t.toLowerCase().includes("deviation") &&
+      SLICES_SHIPPED_LINE.test(t) &&
+      TEST_COUNTS_LINE.test(t)
+    ) {
       found = true;
     }
   });
@@ -182,7 +216,7 @@ function main() {
 
   if (mode === "stop") {
     // (a) Only gate sessions that actually built something this session.
-    if (!/git_commit|"git"\s*,\s*"commit"|git commit/.test(text)) process.exit(0);
+    if (!commitActivityInTranscript(text)) process.exit(0);
     // (b) FINAL already given earlier this session: later Stops pass silently.
     if (attestationPresent(text)) process.exit(0);
     // (c) Genuine in-build stop, no attestation ever emitted: keep blocking.

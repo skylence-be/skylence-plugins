@@ -53,11 +53,14 @@ function line(entry) {
 // invoked. This is the false-positive source found while fixing the bug.
 function skillListingLine() {
   return line({
-    type: "system",
+    type: "attachment",
     attachment: {
       type: "skill_listing",
       content:
         "- skyline-claude:feature-loop-skill: FIRST ACTION of implementation work...\n- skyline-claude:debug-loop-skill: FIRST ACTION of fix work...",
+      skillCount: 2,
+      isInitial: true,
+      names: ["skyline-claude:feature-loop-skill", "skyline-claude:debug-loop-skill"],
     },
   });
 }
@@ -69,13 +72,48 @@ function assistantText(text) {
   });
 }
 
-function assistantSkillInvoke(skillArg) {
-  return line({
-    type: "assistant",
-    message: {
-      content: [{ type: "tool_use", name: "Skill", input: { skill: skillArg } }],
-    },
-  });
+// Real invocation shape (verified against session
+// a5bae5ae-914a-411d-acad-60ead2234e28.jsonl:18-20): a Skill tool_use call
+// is ALWAYS followed by a "Launching skill: <arg>" tool_result (type
+// "user"), then the skill's full body auto-injected as a "Base directory
+// for this skill: ..." message (also type "user", isMeta:true). bodyText
+// defaults to a snippet mirroring feature-loop-skill/SKILL.md's real
+// "...git_commit green slice" line -- the exact literal substring that
+// used to false-positive the old whole-transcript commit check
+// (Finding 1, review bounce todo 69 c245).
+function assistantSkillInvoke(skillArg, bodyText) {
+  const toolUseId = `toolu_${skillArg.replace(/[^a-z0-9]/gi, "")}`;
+  const injectedBody =
+    bodyText !== undefined
+      ? bodyText
+      : "SLICE CYCLE (repeat per slice):\n  generate/locate -> edit(anchors) -> diagnostics(batch) -> test -> format+commit\n  checkpoint: formatter via run -> git_commit green slice (rollback points)\n";
+  return [
+    line({
+      type: "assistant",
+      message: {
+        content: [
+          { type: "tool_use", id: toolUseId, name: "Skill", input: { skill: skillArg } },
+        ],
+      },
+    }),
+    line({
+      type: "user",
+      message: {
+        content: [
+          { type: "tool_result", tool_use_id: toolUseId, content: `Launching skill: ${skillArg}` },
+        ],
+      },
+    }),
+    line({
+      type: "user",
+      isMeta: true,
+      message: {
+        content: [
+          { type: "text", text: `Base directory for this skill: /skills/${skillArg}\n\n${injectedBody}` },
+        ],
+      },
+    }),
+  ].join("\n");
 }
 
 function assistantGitCommit() {
@@ -253,6 +291,43 @@ test("mentioning 'advisor checkpoints' and 'deviations' in prose (no literal CHE
   ]);
   const { code, err } = runStop(t, uniqueSessionId("prose-mention"));
   assert.equal(code, 2, "a plan that only discusses checkpoints/deviations must not disarm the gate");
+  assert.match(err, /FINAL attestation missing/);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+// --- Finding 1 & Finding 2 regressions (review bounce todo 69 c245) --------
+
+test("Finding 1 repro: skill's own auto-injected body contains literal 'git_commit' text, zero real commit tool_use: Stop passes silently", () => {
+  const tmp = freshTmp();
+  const t = writeTranscript(tmp, [
+    assistantSkillInvoke("feature-loop-skill"),
+    assistantText("Orienting now, nothing built or committed yet this session."),
+  ]);
+  const { code, err } = runStop(t, uniqueSessionId("finding1-repro"));
+  assert.equal(
+    code,
+    0,
+    "the skill's own auto-injected instructional text must never satisfy the commit-activity check"
+  );
+  assert.equal(err, "");
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+test("Finding 2 repro: message quotes an illustrative CHECKPOINT line while explaining the format, no real slices/test-count data: Stop still blocks", () => {
+  const tmp = freshTmp();
+  const t = writeTranscript(tmp, [
+    assistantSkillInvoke("feature-loop-skill"),
+    assistantGitCommit(),
+    assistantText(
+      "Sure, happy to recap what the format looks like. A CHECKPOINT line during a real build would read:\nCHECKPOINT: post-model = done\nCHECKPOINT: pre-final = done\nI didn't actually run either checkpoint this turn, and there are no deviations to report from this explanation itself."
+    ),
+  ]);
+  const { code, err } = runStop(t, uniqueSessionId("finding2-repro"));
+  assert.equal(
+    code,
+    2,
+    "a message that only quotes an illustrative CHECKPOINT line, with no slices-shipped/test-count data, must not satisfy attestation"
+  );
   assert.match(err, /FINAL attestation missing/);
   fs.rmSync(tmp, { recursive: true, force: true });
 });
