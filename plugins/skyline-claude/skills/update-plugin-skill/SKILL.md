@@ -1,5 +1,5 @@
 ---
-name: update-plugin
+name: update-plugin-skill
 description: Update the installed skyline-claude plugin to the latest published version. Refreshes the marketplace clone, installs the new version, verifies it, and prompts a restart. Invoke when the user asks to update or refresh the skyline plugin or its hooks, or after a skyline-claude release.
 ---
 

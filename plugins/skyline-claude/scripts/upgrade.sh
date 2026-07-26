@@ -17,7 +17,7 @@ skyline daemon restart --port 7333 2>/dev/null || skyline daemon install --port 
 echo ""
 echo "skyline binary updated and daemon restarted."
 echo ""
-echo "To update the skyline-claude plugin, run the skyline-claude:update-plugin skill, or:"
+echo "To update the skyline-claude plugin, run the skyline-claude:update-plugin-skill skill, or:"
 echo "  claude plugin marketplace update skylence-plugins && claude plugin update skyline-claude@skylence-plugins"
 echo "  codex plugin marketplace upgrade skylence-plugins"
 echo ""
