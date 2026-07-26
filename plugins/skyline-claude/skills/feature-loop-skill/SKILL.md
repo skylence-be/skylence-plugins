@@ -9,7 +9,7 @@ PATHS: absolute path or cwd= on EVERY skyline call (daemon cwd ≠ yours). Zero-
 
 ORIENT (once, 5 calls):
 tree(abs root) → git status (lines carry anchors) → lore_recall(task+stack words, unscoped; consume hits) → lsp_warm(one source file) → read dependency manifest
-manifest names stack (composer.json w/ laravel|livewire|filament ⇒ those stacks; Cargo.toml ⇒ rust; go.mod ⇒ go) ⇒ invoke EVERY installed skill named `<stack>-blueprint-skill` NOW, before PLAN; skill absent ⇒ proceed, zero friction, no error.
+manifest names stack (composer.json: filament ⇒ filament+livewire+laravel; livewire ⇒ livewire+laravel; laravel ⇒ laravel; Cargo.toml ⇒ rust; go.mod ⇒ go) ⇒ invoke EVERY installed skill named `<stack>-blueprint-skill` NOW, before PLAN; skill absent ⇒ proceed, zero friction, no error.
 
 POSTURE ← lsp_warm.project_layer_state:
   fresh + ready_semantic:true  ⇒ full semantic surface (definition/references/symbol_card/impact); trust diagnostics
