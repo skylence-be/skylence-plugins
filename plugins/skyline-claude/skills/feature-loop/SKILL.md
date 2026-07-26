@@ -1,16 +1,36 @@
 ---
 name: feature-loop
-description: The skyline-native build loop — orientation ritual, route-aware semantic posture, vertical slices that each end green, anchor-based editing, batched diagnostics, test-anchored fixes, commit checkpoints, and advisor cadence. Invoke PROACTIVELY, without being asked, at the start of ANY implementation work in a workspace where the skyline MCP tools are available — building a feature, creating an app, adding an endpoint, a refactor with behavior changes. Not for pure investigation or single-line fixes.
+description: Skyline-native build loop — orientation ritual, route-aware semantic posture, vertical slices each ending green, anchor-based editing, batched diagnostics, test-anchored fixes, commit checkpoints, advisor cadence. Invoke PROACTIVELY, unasked, at start of ANY implementation work where skyline MCP tools available — feature build, app creation, endpoint addition, behavior-changing refactor. Not for pure investigation or single-line fixes.
 ---
 
-You are implementing something in a skyline workspace. Follow this loop exactly; every rule was measured or field-derived and deviating recreates known failure modes. The unit of work is a vertical slice that ends green. The unit of editing is a ¶path#TAG anchor, never a re-read.
+Implementing in skyline workspace. Follow loop exactly; each rule measured/field-derived; deviation recreates known failures. Work unit = vertical slice ending green. Edit unit = ¶path#TAG anchor, never re-read.
 
-Pass an absolute path or cwd= on every skyline call; the daemon does not share your working directory, and a wrong-base zero-match must never be read as absence — check the (searched ...) line names your repo root before concluding anything is missing.
+PATHS: absolute path or cwd= on EVERY skyline call (daemon cwd ≠ yours). Zero-match ≠ absence until (searched ...) line names repo root.
 
-Orient exactly once, five calls: tree on the absolute repo root; git (status) for working-tree truth, its lines carry edit anchors; lore_recall with task words plus stack words, unscoped, and consume hits instead of re-deriving decisions; lsp_warm once on a source file of the language you will edit; read the dependency manifest before assuming any library is or is not installed.
+ORIENT (once, 5 calls):
+tree(abs root) → git status (lines carry anchors) → lore_recall(task+stack words, unscoped; consume hits) → lsp_warm(one source file) → read dependency manifest
 
-Your semantic posture is decided by lsp_warm's project_layer_state field, not by hope. If it is fresh and ready_semantic is true, use the full semantic surface — definition, references, symbol_card and impact where offered — and trust diagnostics. If it is unprobed_lsp_route, this box serves the language on the plain LSP route: diagnostics works, definition resolves same-file only, references is unreliable, symbol_card/impact/unreferenced refuse every call so do not invoke them, cross-file questions are answered by grep plus tests, and stdlib undefined-symbol errors may be stale false positives. If it is mcp_resolve_failed or mcp_call_failed, routing self-healed to the LSP route: same posture, and do not chase the mcp route mid-task — a daemon restart retries it. If it is stale, reindexing, or unverified, structural navigation is fine but re-warm per the hint before trusting semantics. On a repo carrying its own dependency directory, "not covered by any mounted dependency index" info-notes are expected and are not errors.
+POSTURE ← lsp_warm.project_layer_state:
+  fresh + ready_semantic:true  ⇒ full semantic surface (definition/references/symbol_card/impact); trust diagnostics
+  unprobed_lsp_route           ⇒ diagnostics OK; definition same-file ONLY; references unreliable; symbol_card/impact/unreferenced REFUSE — never call; cross-file questions ⇒ grep+tests; stdlib undefined-symbol errors possibly stale
+  mcp_resolve_failed | mcp_call_failed ⇒ same as unprobed_lsp_route; never chase mcp route mid-task (daemon restart retries)
+  stale | reindexing | unverified ⇒ structural nav OK; re-warm per hint before trusting semantics
+Repo with own dependency dir: "not covered by any mounted dependency index" info-notes = expected, not errors.
 
-Plan the feature as three to eight vertical slices, each independently shippable: data model first, then the first user-facing surface, then each behavior, then polish. For every slice: generate or locate, edit from anchors, check, prove, checkpoint. Run scaffolding generators and other commands with run using an argv array, never a shell string, and submit anything slow with background:true then run_wait. Locate with grep or find and paste the returned ¶path#TAG header straight into edit; never read a file you already hold an anchor for; put multiple hunks in one file into one edit call with stacked ops; put a change spanning files (model plus surface plus test) into one multi-section edit with verify:true, which applies atomically and rolls back whole on any reject. Check the slice with ONE diagnostics call passing paths:[...] for every touched source file, never one call per file. Prove the slice with the test tool: failures come back with edit anchors, fix directly from them without re-locating. An edit to a template or view file is syntax-checked only by verify:true; runtime component and asset resolution fails invisibly to any reparse, so pair every template change with a request-level render test in the same slice. Checkpoint by running the project's formatter via run, then git_commit the green slice; small commits are your rollback points. Scope every data query to its owning user or tenant where the domain has one, and write the test proving another user sees nothing in the same slice that introduces the query. Leave the loop only when a slice cannot go green: report the exact failing test or diagnostic output and stop, never push on with red.
+PLAN: 3–8 vertical slices, each shippable. Order: data model → first user-facing surface → each behavior → polish.
 
-If an advisor or review tool is active in this session, consult it at slice boundaries — after the model slice, after the first user-facing surface, before the final report — and take its findings as review input. Do not consult it per edit; it bills tokens and reviews half-states badly. Before the final report, run the whole suite via the test tool and state slices shipped, test counts, and any deviations.
+SLICE CYCLE (repeat per slice):
+  generate/locate → edit(anchors) → diagnostics(batch) → test → format+commit
+  ├─ generate: run with argv ARRAY, never shell string; slow ⇒ background:true → run_wait
+  ├─ locate: grep|find → paste ¶path#TAG straight into edit; NEVER read file already holding anchor
+  ├─ edit: multiple hunks one file ⇒ ONE edit, stacked ops; cross-file change (model+surface+test) ⇒ ONE multi-section edit + verify:true (atomic, whole rollback on reject)
+  ├─ diagnostics: ONE call, paths:[all touched files]; never per-file calls
+  ├─ test: failures return edit anchors ⇒ fix directly, no re-locating
+  ├─ template/view edits: verify:true = syntax only; runtime component/asset resolution invisible to reparse ⇒ pair with request-level render test same slice
+  ├─ data queries owned by user/tenant ⇒ same slice adds test proving other user sees nothing
+  └─ checkpoint: formatter via run → git_commit green slice (rollback points)
+  red slice unresolvable ⇒ report exact failing test/diagnostic output, STOP; never continue on red
+
+ADVISOR (if active): consult at slice boundaries only (post-model, post-first-surface, pre-final); findings = review input. Never per-edit (billing + reviews half-states badly).
+
+FINAL: full suite via test tool → report slices shipped, test counts, deviations.
