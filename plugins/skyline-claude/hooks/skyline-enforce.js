@@ -34,7 +34,7 @@ const DAEMON_PORT = Number(process.env.SKYLINE_DAEMON_PORT || 7333);
 const DAEMON_TIMEOUT = 500;
 
 // PHP marker: a composer.json in the cwd flags a PHP project, which adds the
-// PHP-oriented skyline_symbol_card to the on-ramp menu plus a one-sentence note.
+// PHP-oriented symbol_card to the on-ramp menu plus a one-sentence note.
 // Fail-open: any fs/cwd error just omits the augmentation (no throw, no block).
 function hasComposer(cwd) {
   try {
@@ -47,22 +47,22 @@ function hasComposer(cwd) {
 
 // The CORE menu the switch instruction points agents at. The three semantic
 // navigators (definition/references/symbols) are language-generic and always
-// listed (skylence-plugins#15 on-ramp). skyline_symbol_card is PHP-oriented.
+// listed (skylence-plugins#15 on-ramp). symbol_card is PHP-oriented.
 function buildCore(composer) {
   return (
-    "select:mcp__plugin_skyline-claude_skyline__skyline_read," +
-    "mcp__plugin_skyline-claude_skyline__skyline_edit," +
-    "mcp__plugin_skyline-claude_skyline__skyline_create," +
-    "mcp__plugin_skyline-claude_skyline__skyline_grep," +
-    "mcp__plugin_skyline-claude_skyline__skyline_tree," +
-    "mcp__plugin_skyline-claude_skyline__skyline_find," +
-    "mcp__plugin_skyline-claude_skyline__skyline_git," +
-    "mcp__plugin_skyline-claude_skyline__skyline_run," +
-    "mcp__plugin_skyline-claude_skyline__skyline_definition," +
-    "mcp__plugin_skyline-claude_skyline__skyline_references," +
-    "mcp__plugin_skyline-claude_skyline__skyline_symbols" +
+    "select:mcp__skyline__read," +
+    "mcp__skyline__edit," +
+    "mcp__skyline__create," +
+    "mcp__skyline__grep," +
+    "mcp__skyline__tree," +
+    "mcp__skyline__find," +
+    "mcp__skyline__git," +
+    "mcp__skyline__run," +
+    "mcp__skyline__definition," +
+    "mcp__skyline__references," +
+    "mcp__skyline__symbols" +
     (composer && !acuityMcpRoutePinnedOff()
-      ? ",mcp__plugin_skyline-claude_skyline__skyline_symbol_card"
+      ? ",mcp__skyline__symbol_card"
       : "")
   );
 }
@@ -82,7 +82,7 @@ function acuityMcpRoutePinnedOff() {
 function toolSearchLine(composer) {
   const php =
     composer && !acuityMcpRoutePinnedOff()
-      ? " PHP project: skyline_symbol_card answers symbol questions (declaration + callers + resolution) in one call."
+      ? " PHP project: symbol_card answers symbol questions (declaration + callers + resolution) in one call."
       : "";
   return `Tools deferred? run ToolSearch("${buildCore(composer)}") then retry.${php}`;
 }
@@ -271,9 +271,9 @@ function firstNonFlag(tokens, startIdx) {
   return null;
 }
 
-/** skyline_run is argv-only (no shell): wrap the original line in sh -c. */
+/** run is argv-only (no shell): wrap the original line in sh -c. */
 function runFallback(raw) {
-  return fmtCall("skyline_run", { argv: ["sh", "-c", raw] });
+  return fmtCall("run", { argv: ["sh", "-c", raw] });
 }
 
 /** Map a Bash command string to a skyline substitute call string. */
@@ -316,7 +316,7 @@ function mapBashCommand(command, root) {
       subIdx = j;
       break;
     }
-    if (!sub) return fmtCall("skyline_git", {});
+    if (!sub) return fmtCall("git", {});
     // Post-split (binary-skyline lanes A-E): `git` is READ-ONLY (status,
     // diff, log, show, worktree-list). Writes split by risk class:
     // git_commit (add, commit, merge), git_remote (push, pull, fetch),
@@ -328,17 +328,17 @@ function mapBashCommand(command, root) {
         sub2 = rest[j];
         break;
       }
-      if (sub2 === "add") return fmtCall("skyline_git_worktree", { subcommand: "worktree-add" });
-      if (sub2 === "remove" || sub2 === "prune") return fmtCall("skyline_git_worktree", { subcommand: "worktree-remove" });
-      return fmtCall("skyline_git", { subcommand: "worktree-list" });
+      if (sub2 === "add") return fmtCall("git_worktree", { subcommand: "worktree-add" });
+      if (sub2 === "remove" || sub2 === "prune") return fmtCall("git_worktree", { subcommand: "worktree-remove" });
+      return fmtCall("git", { subcommand: "worktree-list" });
     }
     if (sub === "add" || sub === "commit" || sub === "merge") {
-      return fmtCall("skyline_git_commit", { subcommand: sub });
+      return fmtCall("git_commit", { subcommand: sub });
     }
     if (sub === "push" || sub === "pull" || sub === "fetch") {
-      return fmtCall("skyline_git_remote", { subcommand: sub });
+      return fmtCall("git_remote", { subcommand: sub });
     }
-    return fmtCall("skyline_git", { subcommand: sub });
+    return fmtCall("git", { subcommand: sub });
   }
 
   if (prog === "grep" || prog === "egrep" || prog === "fgrep" || prog === "rg") {
@@ -367,8 +367,8 @@ function mapBashCommand(command, root) {
       pattern = t;
       break;
     }
-    if (pattern != null) return fmtCall("skyline_grep", { pattern: unquote(pattern) });
-    return "skyline_grep({pattern:\"…\"})";
+    if (pattern != null) return fmtCall("grep", { pattern: unquote(pattern) });
+    return "grep({pattern:\"…\"})";
   }
 
   if (
@@ -382,8 +382,8 @@ function mapBashCommand(command, root) {
     const file = firstNonFlag(rest, 0);
     // #415 F2: same absolute-path treatment as ls/find below; a relative
     // path resolves against the daemon's cwd (/) and the tool rejects it.
-    if (file) return fmtCall("skyline_read", { path: resolveAbs(unquote(file), root) });
-    return "skyline_read({path:\"…\"})";
+    if (file) return fmtCall("read", { path: resolveAbs(unquote(file), root) });
+    return "read({path:\"…\"})";
   }
 
   if (prog === "find") {
@@ -396,28 +396,28 @@ function mapBashCommand(command, root) {
         break;
       }
     }
-    if (name) return fmtCall("skyline_find", { glob: name, path: resolveAbs(unquote(target), root) });
-    return fmtCall("skyline_tree", { path: resolveAbs(unquote(target), root) });
+    if (name) return fmtCall("find", { glob: name, path: resolveAbs(unquote(target), root) });
+    return fmtCall("tree", { path: resolveAbs(unquote(target), root) });
   }
 
   if (prog === "ls") {
     const p = firstNonFlag(rest, 0) || ".";
-    return fmtCall("skyline_tree", { path: resolveAbs(unquote(p), root) });
+    return fmtCall("tree", { path: resolveAbs(unquote(p), root) });
   }
 
   if (prog === "sed" || prog === "awk" || prog === "perl") {
     return runFallback(raw);
   }
 
-  // default: skyline_run with the original command
+  // default: run with the original command
   return runFallback(raw);
 }
 
 function mapNativeSubstitute(mode, ti, toolName, root) {
   if (mode === "read") {
     const p = ti.file_path || ti.path || ti.filePath;
-    if (p) return fmtCall("skyline_read", { path: String(p) });
-    return "skyline_read({path:\"…\"})";
+    if (p) return fmtCall("read", { path: String(p) });
+    return "read({path:\"…\"})";
   }
   if (mode === "edit") {
     const p = ti.file_path || ti.path || ti.filePath;
@@ -427,22 +427,22 @@ function mapNativeSubstitute(mode, ti, toolName, root) {
       name === "write" ||
       (ti.content != null && ti.old_string == null && ti.oldString == null);
     if (isWrite) {
-      if (p) return fmtCall("skyline_create", { path: String(p) });
-      return "skyline_create({path:\"…\"})";
+      if (p) return fmtCall("create", { path: String(p) });
+      return "create({path:\"…\"})";
     }
-    // skyline_edit takes a ¶path#TAG-anchored patch, not a path: the honest
+    // edit takes a ¶path#TAG-anchored patch, not a path: the honest
     // substitute is the read-then-edit flow.
     const read = p
-      ? fmtCall("skyline_read", { path: String(p) })
-      : "skyline_read({path:\"…\"})";
-    return `${read} then skyline_edit with the returned ¶path#TAG anchor`;
+      ? fmtCall("read", { path: String(p) })
+      : "read({path:\"…\"})";
+    return `${read} then edit with the returned ¶path#TAG anchor`;
   }
   if (mode === "grep") {
     const pattern = ti.pattern == null ? "" : String(ti.pattern);
     const args = { pattern };
     const p = ti.path || ti.file_path;
     if (p) args.path = String(p);
-    return fmtCall("skyline_grep", args);
+    return fmtCall("grep", args);
   }
   if (mode === "glob") {
     const pattern = ti.pattern == null ? String(ti.glob || "") : String(ti.pattern);
@@ -450,8 +450,8 @@ function mapNativeSubstitute(mode, ti, toolName, root) {
     if (pattern) args.glob = pattern;
     const p = ti.path || ti.file_path;
     if (p) args.path = String(p);
-    if (Object.keys(args).length) return fmtCall("skyline_find", args);
-    return "skyline_find({glob:\"…\"})";
+    if (Object.keys(args).length) return fmtCall("find", args);
+    return "find({glob:\"…\"})";
   }
   if (mode === "bash") {
     return mapBashCommand(ti.command || "", root);
@@ -469,7 +469,7 @@ function isSubThreshold(command) {
 
 // Daemon lifecycle pass-through (L4 hook friction, 2026-07-21).
 // A command that starts/stops/restarts the daemon can never be routed THROUGH
-// the daemon: skyline_run would tear down its own transport mid-call, and the
+// the daemon: run would tear down its own transport mid-call, and the
 // hook's advice degenerates into "restart the daemon by asking the daemon".
 // An enforcement hook must never be the reason an operator cannot recover a
 // dead service, so any pipeline stage naming a lifecycle verb passes through.
@@ -618,7 +618,7 @@ async function main() {
   if (MODE === "bash" && isDaemonLifecycle(command)) {
     process.stderr.write(
       "skyline daemon lifecycle command; allowing native tool " +
-        "(skyline_run cannot restart its own transport)\n"
+        "(run cannot restart its own transport)\n"
     );
     process.exit(0);
   }
@@ -674,8 +674,8 @@ async function main() {
     if (isFirstReminder()) {
       const steer =
         huntLang === "php"
-          ? " Symbol hunt? skyline_symbol_card(path, line, symbol) answers declaration + true callers + resolution in one call; skyline_definition / skyline_references also work. Text grep over-counts comments/strings."
-          : " Symbol hunt? Prefer skyline_definition / skyline_references / skyline_implementation over text grep.";
+          ? " Symbol hunt? symbol_card(path, line, symbol) answers declaration + true callers + resolution in one call; definition / references also work. Text grep over-counts comments/strings."
+          : " Symbol hunt? Prefer definition / references / implementation over text grep.";
       outMsg += steer;
     } else {
       outMsg += " (symbol-hunt reminder omitted; already shown this session)";

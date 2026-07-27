@@ -1,4 +1,4 @@
-// PreToolUse NUDGE (binary-skyline#467): when a skyline_grep looks like a SYMBOL
+// PreToolUse NUDGE (binary-skyline#467): when a grep looks like a SYMBOL
 // search on code, inject a steering reminder toward the exact semantic tools,
 // WITHOUT blocking. Text-pattern greps (string literals, route names, config
 // keys, TODOs) pass through silently. This is the deliberate counterpart to
@@ -13,7 +13,7 @@
 //
 // Output: allow + additionalContext (a system reminder). Never emits "deny".
 // Fail-open: any parse/fs problem or non-matching pattern exits 0 silently.
-// Fires on the skyline_grep MCP tool (native Grep is already redirected by
+// Fires on the grep MCP tool (native Grep is already redirected by
 // skyline-enforce), so the skyline daemon is necessarily up; no liveness probe.
 
 const fs = require("fs");
@@ -74,16 +74,16 @@ function logFire(rec) {
 // --- messages --------------------------------------------------------------
 // PHP card-first message (fire 1): check-prescription (run the reconcile).
 function phpMessage(pattern) {
-  return `That skyline_grep pattern ("${pattern}") is a PHP symbol hunt, and a raw text count will mislead you here: it over-counts comments and strings and conflates same-named methods on different classes. Don't conclude from the grep alone. Run the check: take one hit (path + line) and call skyline_symbol_card(path, line, symbol) or skyline_references, then (1) treat any hit tagged name_only as UNCONFIRMED until you verify its receiver type, and (2) if a resolved count disagrees with your grep count, decompose by receiver before trusting either. symbol_card's first line reports the index's own state (provenance and freshness); read it rather than assuming the index is degraded.`;
+  return `That grep pattern ("${pattern}") is a PHP symbol hunt, and a raw text count will mislead you here: it over-counts comments and strings and conflates same-named methods on different classes. Don't conclude from the grep alone. Run the check: take one hit (path + line) and call symbol_card(path, line, symbol) or references, then (1) treat any hit tagged name_only as UNCONFIRMED until you verify its receiver type, and (2) if a resolved count disagrees with your grep count, decompose by receiver before trusting either. symbol_card's first line reports the index's own state (provenance and freshness); read it rather than assuming the index is degraded.`;
 }
 
 // rust/go + generic message (fire 1): check-prescription for structural greps.
 function genericMessage(pattern) {
-  return `That skyline_grep pattern ("${pattern}") looks like a SYMBOL search. A text count misleads for structural questions (who calls Y, what implements this, what breaks if I change it): it over-matches comments and strings and misses fully-qualified or dynamic refs. Don't conclude from the grep alone. Run the check: call skyline_references, skyline_definition, or skyline_implementation on one hit; treat any unproven or name_only hit as UNCONFIRMED until you verify its receiver; and if a resolved count disagrees with your grep count, reconcile before trusting either. Read the tool's own freshness and provenance rather than assuming the index is degraded.`;
+  return `That grep pattern ("${pattern}") looks like a SYMBOL search. A text count misleads for structural questions (who calls Y, what implements this, what breaks if I change it): it over-matches comments and strings and misses fully-qualified or dynamic refs. Don't conclude from the grep alone. Run the check: call references, definition, or implementation on one hit; treat any unproven or name_only hit as UNCONFIRMED until you verify its receiver; and if a resolved count disagrees with your grep count, reconcile before trusting either. Read the tool's own freshness and provenance rather than assuming the index is degraded.`;
 }
 
 const ONE_LINER =
-  "Reminder: before counting call sites from grep, reconcile with skyline_references and treat name_only or unproven hits as unconfirmed until you check the receiver.";
+  "Reminder: before counting call sites from grep, reconcile with references and treat name_only or unproven hits as unconfirmed until you check the receiver.";
 
 // fire 1 => full (language-specific), fires 2-3 => one-liner, fires >3 => silent.
 function buildMessage(lang, pattern, fireN) {

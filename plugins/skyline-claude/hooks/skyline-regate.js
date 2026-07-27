@@ -11,8 +11,8 @@
 const REGATE_CONTEXT =
   "skyline: context was compacted; the guide's text did not survive summarization. " +
   "Re-read skyline://guide before the next edit-class call. Session recipe: " +
-  "skyline_tree, then skyline_lore_recall (unscoped), then skyline_lsp_warm once " +
-  "for PHP/Rust/Go work (gate on ready_semantic), then skyline_git status.";
+  "tree, then lore_recall (unscoped), then lsp_warm once " +
+  "for PHP/Rust/Go work (gate on ready_semantic), then git status.";
 
 let buf = "";
 process.stdin.setEncoding("utf8");

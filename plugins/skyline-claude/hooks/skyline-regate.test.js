@@ -22,7 +22,7 @@ test("compact source emits the re-gate context", () => {
   assert.strictEqual(parsed.hookSpecificOutput.hookEventName, "SessionStart");
   assert.match(ctx, /skyline:\/\/guide/);
   assert.match(ctx, /ready_semantic/);
-  assert.match(ctx, /skyline_lore_recall/);
+  assert.match(ctx, /lore_recall/);
 });
 
 test("startup source stays silent", () => {

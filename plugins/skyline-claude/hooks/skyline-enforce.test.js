@@ -99,7 +99,8 @@ except Exception as e:
     print("ERR", e, flush=True)
     sys.exit(1)
 `;
-  pyServer = spawn("python3", ["-c", pyCode], { stdio: ["pipe", "pipe", "pipe"] });
+  const pyCmd = process.platform === "win32" ? "python" : "python3";
+  pyServer = spawn(pyCmd, ["-c", pyCode], { stdio: ["pipe", "pipe", "pipe"] });
   await new Promise((resolve, reject) => {
     let buf = "";
     const ondata = (d) => {
@@ -151,7 +152,7 @@ function assertNoDeadOneLiner(stderr) {
 }
 
 function assertHasToolSearch(stderr) {
-  assert.match(stderr, /ToolSearch\("select:mcp__plugin_skyline-claude_skyline__/, "ToolSearch select present");
+  assert.match(stderr, /ToolSearch\("select:mcp__skyline__/, "ToolSearch select present");
 }
 
 // --- retained #549 behaviors ----------------------------------------------
@@ -191,7 +192,7 @@ test("sub-threshold silence: short cmd no pipe/redirect => exit 0, no output at 
 // commands use a pipe or length >=120 so they are actually denied; mapping
 // always uses the first pipeline stage / leading argv.
 
-test("#706 git diff => skyline_git({subcommand:\"diff\"}) on every denial", () => {
+test("#706 git diff => git({subcommand:\"diff\"}) on every denial", () => {
   // pipe defeats size threshold; first stage still maps to git diff
   const r = runHook(
     "bash",
@@ -199,7 +200,7 @@ test("#706 git diff => skyline_git({subcommand:\"diff\"}) on every denial", () =
     { tool_input: { command: "git diff | cat" } }
   );
   assert.equal(r.status, 2, "denied");
-  assert.match(r.stderr, /skyline_git\(\{subcommand:"diff"\}\)/, "exact substitute");
+  assert.match(r.stderr, /git\(\{subcommand:"diff"\}\)/, "exact substitute");
   assertHasToolSearch(r.stderr);
   assertNoDeadOneLiner(r.stderr);
 });
@@ -212,12 +213,12 @@ test("#706 git diff long form (>=120 chars): substitute present", () => {
     { tool_input: { command: long } }
   );
   assert.equal(r.status, 2);
-  assert.match(r.stderr, /skyline_git\(\{subcommand:"diff"\}\)/);
+  assert.match(r.stderr, /git\(\{subcommand:"diff"\}\)/);
   assertHasToolSearch(r.stderr);
   assertNoDeadOneLiner(r.stderr);
 });
 
-test("#706 grep -rli pattern => skyline_grep({pattern})", () => {
+test("#706 grep -rli pattern => grep({pattern})", () => {
   // pipe so size threshold does not skip
   const r = runHook(
     "bash",
@@ -225,12 +226,12 @@ test("#706 grep -rli pattern => skyline_grep({pattern})", () => {
     { tool_input: { command: "grep -rli 'Meting' . | head -20" } }
   );
   assert.equal(r.status, 2);
-  assert.match(r.stderr, /skyline_grep\(\{pattern:"Meting"\}\)/, "pattern mapped");
+  assert.match(r.stderr, /grep\(\{pattern:"Meting"\}\)/, "pattern mapped");
   assertHasToolSearch(r.stderr);
   assertNoDeadOneLiner(r.stderr);
 });
 
-test("#706 cat file => skyline_read({path})", () => {
+test("#706 cat file => read({path})", () => {
   const r = runHook(
     "bash",
     { CLAUDE_SESSION_ID: "sess-cat" },
@@ -239,15 +240,15 @@ test("#706 cat file => skyline_read({path})", () => {
   assert.equal(r.status, 2);
   assert.match(
     r.stderr,
-    /skyline_read\(\{path:"\/[^"]+src\/App\/Models\/User\.php"\}\)/,
-    "#415 F2: cat maps to skyline_read with an ABSOLUTE path"
+    /read\(\{path:"\/[^"]+src\/App\/Models\/User\.php"\}\)/,
+    "#415 F2: cat maps to read with an ABSOLUTE path"
   );
   assert.ok(!r.stderr.includes('path:"src/'), "no relative path in cat remediation");
   assertHasToolSearch(r.stderr);
   assertNoDeadOneLiner(r.stderr);
 });
 
-test("#706 Read inside tree => deny with skyline_read({path})", () => {
+test("#706 Read inside tree => deny with read({path})", () => {
   // hooks dir is inside the plugins repo tree
   const inside = path.join(__dirname, "skyline-enforce.js");
   const r = runHook(
@@ -259,8 +260,8 @@ test("#706 Read inside tree => deny with skyline_read({path})", () => {
     }
   );
   assert.equal(r.status, 2, "in-tree Read denied");
-  assert.match(r.stderr, /skyline_read\(\{path:/);
-  assert.ok(r.stderr.includes(inside) || r.stderr.includes("skyline_read"), "path or tool present");
+  assert.match(r.stderr, /read\(\{path:/);
+  assert.ok(r.stderr.includes(inside) || r.stderr.includes("read"), "path or tool present");
   assertHasToolSearch(r.stderr);
   assertNoDeadOneLiner(r.stderr);
 });
@@ -280,7 +281,7 @@ test("#706 Write outside tree (e.g. ~/.claude) => pass through exit 0", () => {
   assert.equal(r.stderr, "", "no deny noise for out-of-tree");
 });
 
-test("#706 Write inside tree => deny with skyline_create({path})", () => {
+test("#706 Write inside tree => deny with create({path})", () => {
   const inside = path.join(__dirname, "NEWFILE-enforce-test.txt");
   const r = runHook(
     "edit",
@@ -292,7 +293,7 @@ test("#706 Write inside tree => deny with skyline_create({path})", () => {
     }
   );
   assert.equal(r.status, 2, "in-tree Write denied");
-  assert.match(r.stderr, /skyline_create\(\{path:/, "Write maps to skyline_create");
+  assert.match(r.stderr, /create\(\{path:/, "Write maps to create");
   assertHasToolSearch(r.stderr);
   assertNoDeadOneLiner(r.stderr);
 });
@@ -304,8 +305,8 @@ test("#706 second denial still carries substitute (idempotent, no dead one-liner
   const r2 = runHook("bash", { CLAUDE_SESSION_ID: sess }, cmd);
   assert.equal(r1.status, 2);
   assert.equal(r2.status, 2);
-  assert.match(r1.stderr, /skyline_grep\(\{pattern:"foo"\}\)/);
-  assert.match(r2.stderr, /skyline_grep\(\{pattern:"foo"\}\)/, "repeat still has substitute");
+  assert.match(r1.stderr, /grep\(\{pattern:"foo"\}\)/);
+  assert.match(r2.stderr, /grep\(\{pattern:"foo"\}\)/, "repeat still has substitute");
   assertHasToolSearch(r1.stderr);
   assertHasToolSearch(r2.stderr);
   assertNoDeadOneLiner(r1.stderr);
@@ -331,8 +332,8 @@ test("#706 ToolSearch select string unconditional on read deny", () => {
   assertHasToolSearch(r.stderr);
   assert.match(
     r.stderr,
-    /mcp__plugin_skyline-claude_skyline__skyline_git/,
-    "CORE menu includes skyline_git"
+    /mcp__skyline__git/,
+    "CORE menu includes git"
   );
 });
 
@@ -349,7 +350,7 @@ function cleanup(d) {
   } catch {}
 }
 
-test("native Grep redirect with `use App\\Models\\User` in a composer cwd: message contains `skyline_symbol_card`", () => {
+test("native Grep redirect with `use App\\Models\\User` in a composer cwd: message contains `symbol_card`", () => {
   const sess = "sess-grep-php";
   const php = markerDir("composer.json");
   try {
@@ -362,10 +363,10 @@ test("native Grep redirect with `use App\\Models\\User` in a composer cwd: messa
       }
     );
     assert.equal(r.status, 2, "still denies (redirects)");
-    assert.match(r.stderr, /skyline_grep\(\{pattern:/, "substitute present");
+    assert.match(r.stderr, /grep\(\{pattern:/, "substitute present");
     assert.match(
       r.stderr,
-      /skyline_symbol_card/,
+      /symbol_card/,
       "steering or PHP note mentions symbol_card"
     );
     assertNoDeadOneLiner(r.stderr);
@@ -384,7 +385,7 @@ test("native Grep redirect with a config-key pattern: base substitute, no Symbol
     }
   );
   assert.equal(r.status, 2);
-  assert.match(r.stderr, /skyline_grep\(\{pattern:"some config key with spaces"\}\)/);
+  assert.match(r.stderr, /grep\(\{pattern:"some config key with spaces"\}\)/);
   assert.ok(!r.stderr.includes("Symbol hunt?"), "no steering sentence for non-symbol pattern");
   assertHasToolSearch(r.stderr);
 });
@@ -399,15 +400,15 @@ test("bash long command without pipe still triggers when >=120", () => {
   assert.equal(res.status, 2);
   assert.match(
     res.stderr,
-    /skyline_run\(\{argv:\["sh","-c","echo x/,
-    "long bash maps to argv-shape skyline_run"
+    /run\(\{argv:\["sh","-c","echo x/,
+    "long bash maps to argv-shape run"
   );
   assertHasToolSearch(res.stderr);
 });
 
 // --- bounce cycle 1 (todo 401): schema-valid substitutes + scoping ---------
 
-test("#706 echo-headed `;`-compound => argv-shape skyline_run substitute", () => {
+test("#706 echo-headed `;`-compound => argv-shape run substitute", () => {
   const r = runHook(
     "bash",
     { CLAUDE_SESSION_ID: "sess-compound" },
@@ -416,10 +417,10 @@ test("#706 echo-headed `;`-compound => argv-shape skyline_run substitute", () =>
   assert.equal(r.status, 2);
   assert.match(
     r.stderr,
-    /skyline_run\(\{argv:\["sh","-c","echo prep; git diff boost\.json \| head -20"\]\}\)/,
+    /run\(\{argv:\["sh","-c","echo prep; git diff boost\.json \| head -20"\]\}\)/,
     "whole line wrapped in sh -c argv"
   );
-  assert.ok(!r.stderr.includes("skyline_run({command:"), "no schema-invalid command param");
+  assert.ok(!r.stderr.includes("run({command:"), "no schema-invalid command param");
   assertHasToolSearch(r.stderr);
   assertNoDeadOneLiner(r.stderr);
 });
@@ -437,11 +438,11 @@ test("#706 CLAUDE_PROJECT_DIR unset: .git walk scopes, in-tree Read still denied
     { cwd: __dirname, tool_input: { file_path: inside } }
   );
   assert.equal(r.status, 2, "env-unset in-tree Read denied via .git walk");
-  assert.match(r.stderr, /skyline_read\(\{path:/);
+  assert.match(r.stderr, /read\(\{path:/);
   assertHasToolSearch(r.stderr);
 });
 
-test("#706 find -name => skyline_find({glob,path})", () => {
+test("#706 find -name => find({glob,path})", () => {
   const r = runHook(
     "bash",
     { CLAUDE_SESSION_ID: "sess-find-name" },
@@ -450,11 +451,11 @@ test("#706 find -name => skyline_find({glob,path})", () => {
   assert.equal(r.status, 2);
   assert.match(
     r.stderr,
-    /skyline_find\(\{glob:"\*\.php", path:"\/[^"]+"\}\)/,
+    /find\(\{glob:"\*\.php", path:"\/[^"]+"\}\)/,
     "find -name keeps the glob param and renders an ABSOLUTE path (never relative '.')"
   );
   assert.ok(!r.stderr.includes('path:"."'), "#411 no relative '.' path in remediation");
-  assert.ok(!r.stderr.includes("skyline_find({pattern:"), "no schema-invalid pattern param");
+  assert.ok(!r.stderr.includes("find({pattern:"), "no schema-invalid pattern param");
 });
 
 test("#411 ls remediation renders an absolute path, never a relative '.'", () => {
@@ -467,23 +468,23 @@ test("#411 ls remediation renders an absolute path, never a relative '.'", () =>
   assert.ok(!r.stderr.includes('path:"."'), "no relative '.' path emitted");
   assert.match(
     r.stderr,
-    /skyline_tree\(\{path:"\/[^"]+"\}\)/,
-    "bare ls maps to skyline_tree with an ABSOLUTE path"
+    /tree\(\{path:"\/[^"]+"\}\)/,
+    "bare ls maps to tree with an ABSOLUTE path"
   );
 });
 
-test("#706 Glob => skyline_find({glob})", () => {
+test("#706 Glob => find({glob})", () => {
   const r = runHook(
     "glob",
     { CLAUDE_SESSION_ID: "sess-glob-mode" },
     { tool_input: { pattern: "**/*.js" } }
   );
   assert.equal(r.status, 2);
-  assert.match(r.stderr, /skyline_find\(\{glob:"\*\*\/\*\.js"\}\)/, "Glob maps to glob param");
-  assert.ok(!r.stderr.includes("skyline_find({pattern:"), "no schema-invalid pattern param");
+  assert.match(r.stderr, /find\(\{glob:"\*\*\/\*\.js"\}\)/, "Glob maps to glob param");
+  assert.ok(!r.stderr.includes("find({pattern:"), "no schema-invalid pattern param");
 });
 
-test("#706 Edit inside tree => read-then-edit flow (skyline_edit has no path param)", () => {
+test("#706 Edit inside tree => read-then-edit flow (edit has no path param)", () => {
   const inside = path.join(__dirname, "skyline-enforce.js");
   const r = runHook(
     "edit",
@@ -498,9 +499,9 @@ test("#706 Edit inside tree => read-then-edit flow (skyline_edit has no path par
     }
   );
   assert.equal(r.status, 2, "in-tree Edit denied");
-  assert.match(r.stderr, /skyline_read\(\{path:/, "flow starts with skyline_read");
-  assert.match(r.stderr, /then skyline_edit with the returned ¶path#TAG anchor/, "honest flow");
-  assert.ok(!r.stderr.includes("skyline_edit({path:"), "no schema-invalid path param");
+  assert.match(r.stderr, /read\(\{path:/, "flow starts with read");
+  assert.match(r.stderr, /then edit with the returned ¶path#TAG anchor/, "honest flow");
+  assert.ok(!r.stderr.includes("edit({path:"), "no schema-invalid path param");
 });
 
 test("field #11: non-symbol denial does not burn the steer marker", () => {
@@ -530,7 +531,7 @@ test("field #11: non-symbol denial does not burn the steer marker", () => {
   );
   assert.equal(r3.status, 2);
   assert.match(r3.stderr, /reminder omitted/, "second symbol-hunt denial collapses");
-  assert.match(r3.stderr, /skyline_grep\(\{pattern:/, "substitute never drops");
+  assert.match(r3.stderr, /grep\(\{pattern:/, "substitute never drops");
 });
 
 test("grep flag values are not taken as the pattern", () => {
@@ -540,18 +541,18 @@ test("grep flag values are not taken as the pattern", () => {
     { tool_input: { command: "grep -A 3 foo . | head" } }
   );
   assert.equal(r1.status, 2);
-  assert.match(r1.stderr, /skyline_grep\(\{pattern:"foo"\}\)/, "-A value skipped");
+  assert.match(r1.stderr, /grep\(\{pattern:"foo"\}\)/, "-A value skipped");
   const r2 = runHook(
     "bash",
     { CLAUDE_SESSION_ID: "sess-grep-flagval" },
     { tool_input: { command: "grep --exclude-dir node_modules foo . | head" } }
   );
   assert.equal(r2.status, 2);
-  assert.match(r2.stderr, /skyline_grep\(\{pattern:"foo"\}\)/, "--exclude-dir value skipped");
+  assert.match(r2.stderr, /grep\(\{pattern:"foo"\}\)/, "--exclude-dir value skipped");
 });
 
 // --- daemon lifecycle pass-through (L4 hook friction, 2026-07-21) ----------
-// Regression: the hook rewrote `skyline daemon restart` into skyline_run(...),
+// Regression: the hook rewrote `skyline daemon restart` into run(...),
 // i.e. restart the daemon through the daemon being restarted. Every command
 // below is >=120 chars or contains a pipe, so isSubThreshold() cannot be the
 // reason it passes: only the lifecycle exemption can be.
@@ -593,7 +594,7 @@ for (const [label, command] of LIFECYCLE_CASES) {
     );
     assert.equal(r.status, 0, `must not block; stderr was: ${r.stderr}`);
     assert.ok(
-      !r.stderr.includes("skyline_run("),
+      !r.stderr.includes("run("),
       "must never advise restarting the daemon through the daemon"
     );
     assert.match(r.stderr, /daemon lifecycle command/, "explicit pass-through notice");
@@ -627,7 +628,7 @@ test("lifecycle exemption is narrow: grepping for the phrase still redirects", (
     }
   );
   assert.equal(r.status, 2, "grep for the phrase is an ordinary search: denied");
-  assert.match(r.stderr, /skyline_grep\(\{pattern:"skyline daemon restart"\}\)/);
+  assert.match(r.stderr, /grep\(\{pattern:"skyline daemon restart"\}\)/);
 });
 
 test("daemon-down passthrough holds for a lifecycle command too", () => {
@@ -643,5 +644,5 @@ test("daemon-down passthrough holds for a lifecycle command too", () => {
     }
   );
   assert.equal(r.status, 0, "never block recovery");
-  assert.ok(!r.stderr.includes("skyline_run("), "no self-referential advice");
+  assert.ok(!r.stderr.includes("run("), "no self-referential advice");
 });
