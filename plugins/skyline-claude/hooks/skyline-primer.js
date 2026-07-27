@@ -123,7 +123,7 @@ function hasLoreBank() {
 }
 
 const LORE_CONTEXT =
-  "Skyline hosts the skylore memory bank. Call skyline_lore_recall BEFORE re-deriving any \"why is it done this way / did we already decide X / what broke last time\" question: it is ranked (BM25), deterministic, costs no LLM call, and every hit cites its provenance. Keep durable decisions and gotchas with skyline_lore_mark. Route by tier: skyline_lore_* for cross-project decisions, preferences and gotchas that live in no file; skyline_memory_* for per-project markdown notes; skybox/LSP for code structure, which you should never memorize because a parser re-derives it.";
+  "Skyline hosts the skylore memory bank. Call lore_recall BEFORE re-deriving any \"why is it done this way / did we already decide X / what broke last time\" question: it is ranked (BM25), deterministic, costs no LLM call, and every hit cites its provenance. Keep durable decisions and gotchas with lore_mark. Route by tier: lore_* for cross-project decisions, preferences and gotchas that live in no file; memory_* for per-project markdown notes; skybox/LSP for code structure, which you should never memorize because a parser re-derives it.";
 
 // #411: front-load the one environment fact that silently breaks every skyline
 // call when missed. The daemon's cwd is /, so a relative path (a bare ".") is
@@ -285,9 +285,9 @@ process.stdin.on("end", () => {
 
   let context = "";
   if (hasMarker(detectRoot, "composer.json")) {
-    context = "Skyline semantic PHP tools are active here. For symbol questions (where is X defined, who calls Y, which same-named class resolves), don't conclude from text counts: run skyline_symbol_card(path, line, symbol) or skyline_references and reconcile. A name_only hit is unconfirmed until you verify its receiver, and if symbol_card's count disagrees with a grep count, decompose by receiver. Read symbol_card's provenance and freshness before assuming the index is degraded; use skyline_grep for literal text only.";
+    context = "Skyline semantic PHP tools are active here. For symbol questions (where is X defined, who calls Y, which same-named class resolves), don't conclude from text counts: run symbol_card(path, line, symbol) or references and reconcile. A name_only hit is unconfirmed until you verify its receiver, and if symbol_card's count disagrees with a grep count, decompose by receiver. Read symbol_card's provenance and freshness before assuming the index is degraded; use grep for literal text only.";
   } else if (hasMarker(detectRoot, "Cargo.toml") || hasMarker(detectRoot, "go.mod")) {
-    context = "Skyline semantic tools active. For symbol questions, don't conclude from grep counts: run skyline_definition, skyline_references, or skyline_implementation and reconcile any unproven hit by checking its receiver; read the tool's freshness before assuming degradation.";
+    context = "Skyline semantic tools active. For symbol questions, don't conclude from grep counts: run definition, references, or implementation and reconcile any unproven hit by checking its receiver; read the tool's freshness before assuming degradation.";
   }
 
   const blueprintLine = blueprintInvocationContext(detectRoot);

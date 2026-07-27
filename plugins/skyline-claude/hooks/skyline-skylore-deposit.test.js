@@ -47,7 +47,7 @@ test("fires exactly once per session: first Stop blocks, second allows", () => {
   assert.equal(r1.status, 0, "first fire exits 0 with JSON");
   const out = JSON.parse(r1.stdout.trim());
   assert.equal(out.decision, "block", "first Stop blocks");
-  assert.match(out.reason, /Deposit them with skyline_lore_mark/, "deposit prompt present");
+  assert.match(out.reason, /Deposit them with lore_mark/, "deposit prompt present");
   assert.match(out.reason, /kind=fact\/decision/, "names the mark kinds");
   assert.match(out.reason, /Manifest contents don't count/, "excludes manifest facts");
 

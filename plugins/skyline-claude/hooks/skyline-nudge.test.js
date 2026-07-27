@@ -69,7 +69,7 @@ test("`class User` decl in a composer.json cwd => php-symbol message (was silent
   );
   assert.ok(ctx, "a nudge fired (previously silent)");
   assert.match(ctx, /is a PHP symbol hunt/, "routed to the PHP message");
-  assert.match(ctx, /Run the check: take one hit \(path \+ line\) and call skyline_symbol_card/);
+  assert.match(ctx, /Run the check: take one hit \(path \+ line\) and call symbol_card/);
   fs.rmSync(tmp, { recursive: true, force: true });
   fs.rmSync(php, { recursive: true, force: true });
 });
@@ -115,7 +115,7 @@ test("rust declaration in a Cargo.toml cwd => rust/go (generic five-tool) messag
   assert.doesNotMatch(ctx, /PHP symbol hunt/, "not the PHP message");
   assert.match(
     ctx,
-    /Run the check: call skyline_references, skyline_definition, or skyline_implementation/,
+    /Run the check: call references, definition, or implementation/,
     "the check-prescription rust/go message"
   );
   fs.rmSync(tmp, { recursive: true, force: true });
@@ -165,7 +165,7 @@ test("session cap: fire 1 full, fires 2-3 one-liner, fire 4+ silent", () => {
 });
 
 const ONE_LINER =
-  "Reminder: before counting call sites from grep, reconcile with skyline_references and treat name_only or unproven hits as unconfirmed until you check the receiver.";
+  "Reminder: before counting call sites from grep, reconcile with references and treat name_only or unproven hits as unconfirmed until you check the receiver.";
 
 // --- fail-open -------------------------------------------------------------
 
@@ -195,4 +195,29 @@ test("fire-log JSONL records {ts, session_id, pattern, lang, fire_n}", () => {
   assert.ok(typeof rec.ts === "string" && rec.ts.length > 0);
   assert.equal(rec.pattern, "use App\\Models\\User");
   fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+// --- hooks.json wiring -------------------------------------------------
+// binary-skyline#467 / skylence-plugins todo 137: hooks.json:60 matched
+// "mcp__.*__skyline_grep$" while the live post-v1.1.0 tool is named
+// "mcp__skyline__grep" (no skyline_ stutter), so this hook was silently
+// DEAD -- no error, it just never fired. A regex-compiles green suite is
+// not evidence of that; only testing the regex against real strings is.
+test("hooks.json PreToolUse matcher for this hook fires on the live grep tool name, not the pre-v1.1.0 form", () => {
+  const hooksJson = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, "hooks.json"), "utf8")
+  );
+  const nudgeEntry = hooksJson.hooks.PreToolUse.find((entry) =>
+    entry.hooks.some((h) => (h.args || []).some((a) => a.includes("skyline-nudge.js")))
+  );
+  assert.ok(nudgeEntry, "nudge hook entry found in hooks.json PreToolUse");
+  const re = new RegExp(nudgeEntry.matcher);
+  assert.ok(
+    re.test("mcp__skyline__grep"),
+    `matcher ${nudgeEntry.matcher} must match the live tool name mcp__skyline__grep`
+  );
+  assert.ok(
+    !re.test("mcp__plugin_skyline-claude_skyline__skyline_grep"),
+    `matcher ${nudgeEntry.matcher} must NOT match the pre-v1.1.0 stale form (a revert must be caught)`
+  );
 });

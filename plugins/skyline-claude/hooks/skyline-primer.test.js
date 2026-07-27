@@ -46,9 +46,9 @@ function cleanup(d) {
   try { fs.rmSync(d, { recursive: true, force: true }); } catch {}
 }
 
-const PHP_CTX = "Skyline semantic PHP tools are active here. For symbol questions (where is X defined, who calls Y, which same-named class resolves), don't conclude from text counts: run skyline_symbol_card(path, line, symbol) or skyline_references and reconcile. A name_only hit is unconfirmed until you verify its receiver, and if symbol_card's count disagrees with a grep count, decompose by receiver. Read symbol_card's provenance and freshness before assuming the index is degraded; use skyline_grep for literal text only.";
+const PHP_CTX = "Skyline semantic PHP tools are active here. For symbol questions (where is X defined, who calls Y, which same-named class resolves), don't conclude from text counts: run symbol_card(path, line, symbol) or references and reconcile. A name_only hit is unconfirmed until you verify its receiver, and if symbol_card's count disagrees with a grep count, decompose by receiver. Read symbol_card's provenance and freshness before assuming the index is degraded; use grep for literal text only.";
 
-const RUST_CTX = "Skyline semantic tools active. For symbol questions, don't conclude from grep counts: run skyline_definition, skyline_references, or skyline_implementation and reconcile any unproven hit by checking its receiver; read the tool's freshness before assuming degradation.";
+const RUST_CTX = "Skyline semantic tools active. For symbol questions, don't conclude from grep counts: run definition, references, or implementation and reconcile any unproven hit by checking its receiver; read the tool's freshness before assuming degradation.";
 
 // Shared substrings for the #411 orientation contract (env facts front-loaded).
 // FOCUS_LINE stops before the em dash on purpose: keeps this source em-dash-free.
@@ -100,7 +100,7 @@ test("no marker, no bank: still emits the always-on env facts, no steer", () => 
     const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
     assert.ok(ctx.startsWith(ABS_PREFIX), "abs-path env fact always emitted");
     assert.ok(ctx.includes(FOCUS_LINE), "focus-license line present");
-    assert.ok(!ctx.includes("skyline_lore_recall"), "no lore steer without a bank");
+    assert.ok(!ctx.includes("lore_recall"), "no lore steer without a bank");
     assert.ok(!ctx.includes(PHP_CTX) && !ctx.includes(RUST_CTX), "no language steer without a marker");
   } finally {
     cleanup(plain);
@@ -123,10 +123,10 @@ test("lore context is emitted when the bank exists, regardless of language marke
     const res = run({ cwd: plain }, { SKYLORE_DB: bank.db });
     assert.equal(res.status, 0);
     const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
-    assert.match(ctx, /skyline_lore_recall/);
-    assert.match(ctx, /skyline_lore_mark/);
+    assert.match(ctx, /lore_recall/);
+    assert.match(ctx, /lore_mark/);
     // the routing rule is the point: it must name all three tiers
-    assert.match(ctx, /skyline_memory_\*/);
+    assert.match(ctx, /memory_\*/);
     assert.match(ctx, /skybox/);
   } finally {
     cleanup(bank.dir);
@@ -141,7 +141,7 @@ test("no bank means no lore context (never advertise an empty bank)", () => {
     assert.equal(res.status, 0);
     const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
     assert.ok(ctx.startsWith(ABS_PREFIX), "env facts still emitted");
-    assert.ok(!ctx.includes("skyline_lore_recall"), "absent bank => no lore steer");
+    assert.ok(!ctx.includes("lore_recall"), "absent bank => no lore steer");
   } finally {
     cleanup(plain);
   }
@@ -156,7 +156,7 @@ test("php marker and lore bank compose without clobbering each other", () => {
     const ctx = JSON.parse(res.stdout.trim()).hookSpecificOutput.additionalContext;
     assert.ok(ctx.startsWith(ABS_PREFIX), "env facts front-loaded before steer");
     assert.ok(ctx.includes(PHP_CTX), "php steer kept verbatim");
-    assert.match(ctx, /skyline_lore_recall/);
+    assert.match(ctx, /lore_recall/);
   } finally {
     cleanup(php);
     cleanup(bank.dir);
