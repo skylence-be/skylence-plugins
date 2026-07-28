@@ -15,7 +15,7 @@ documentation).
   daemon (`http://127.0.0.1:7333/mcp`).
 - Installs a `PreToolUse` enforcement hook. When the daemon is up, native
   shell/read/edit tool calls are **denied** with a message redirecting the
-  agent to the corresponding `skyline_*` MCP tools. When the daemon is
+  agent to the corresponding skyline MCP tools. When the daemon is
   unreachable (or `curl` is missing) the hook **fails open** — it returns
   `{"decision":"allow"}` so the agent is never blocked.
 - Ships `upgrade` and `uninstall` skills that drive the skyline binary/daemon
@@ -123,7 +123,7 @@ The following were previously assumptions and are now confirmed:
    grep/find/glob tool names are **not documented**, so search calls are **not
    intercepted** by this plugin. Only `run_command`, `view_file`, and the
    write/edit tools are matched. (The shell `run_command` hook still steers
-   agents toward `skyline_grep` / `skyline_find` / `skyline_tree` for shell-
+   agents toward `grep` / `find` / `tree` for shell-
    driven search.) TODO: add search matchers once the names are documented.
 
 2. **`plugin.json` `mcpServers` pointer shape.** We keep

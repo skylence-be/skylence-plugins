@@ -8,7 +8,7 @@
 #     print {"decision":"allow"} and exit 0 so the native tool proceeds and the
 #     agent is never blocked.
 #   - If the daemon IS up, print {"decision":"deny","reason":"..."} steering the
-#     agent to the skyline_* MCP tools instead of the native tool.
+#     agent to the skyline MCP tools instead of the native tool.
 #
 # POSIX sh. The first argument selects the redirect message (read/edit/grep/
 # glob/bash); the STDIN payload is drained for contract compliance but the mode
@@ -44,14 +44,14 @@ else
   allow
 fi
 
-# Daemon is up: redirect to skyline tools. Tool names are the generic skyline_*
-# names; the exact MCP namespace prefix Antigravity applies is unverified.
+# Daemon is up: redirect to skyline tools. Tool names are the bare post-v1.1.0
+# names (read/edit/grep/...); the exact MCP namespace prefix Antigravity applies is unverified.
 case "$MODE" in
-  read) deny "skyline is active: use the skyline_read MCP tool instead of the native view_file tool." ;;
-  edit) deny "skyline is active: use the skyline_edit / skyline_create MCP tools instead of the native write_to_file / replace_file_content / multi_replace_file_content tools." ;;
-  grep) deny "skyline is active: use the skyline_grep / skyline_sgrep MCP tools instead of the native search tool." ;;
-  glob) deny "skyline is active: use the skyline_find / skyline_tree MCP tools instead of the native glob tool." ;;
-  bash) deny "skyline is active: use skyline_grep, skyline_find, skyline_tree, skyline_git (read-only: status/diff/log/show/worktree-list), skyline_git_commit/skyline_git_remote/skyline_git_worktree for git writes, skyline_run/skyline_run_batch/skyline_run_job, skyline_test instead of run_command for file/repo work." ;;
+  read) deny "skyline is active: use the read MCP tool instead of the native view_file tool." ;;
+  edit) deny "skyline is active: use the edit / create MCP tools instead of the native write_to_file / replace_file_content / multi_replace_file_content tools." ;;
+  grep) deny "skyline is active: use the grep / sgrep MCP tools instead of the native search tool." ;;
+  glob) deny "skyline is active: use the find / tree MCP tools instead of the native glob tool." ;;
+  bash) deny "skyline is active: use grep, find, tree, git (read-only: status/diff/log/show/worktree-list), git_commit/git_remote/git_worktree for git writes, run/run_batch/run_job, test instead of run_command for file/repo work." ;;
 esac
 
 # Unknown mode: do not block.

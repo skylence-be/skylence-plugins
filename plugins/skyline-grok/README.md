@@ -2,7 +2,7 @@
 
 Grok port of the Skylence skyline enforcement plugin.
 
-Wires the skyline HTTP MCP daemon (`http://127.0.0.1:7333/mcp`) into Grok and installs lifecycle hooks. When the daemon is reachable, native Grok file and shell tools are redirected to the richer `skyline_*` MCP tools with an **exact substitute** call in the deny reason. Fails open when the daemon is unreachable.
+Wires the skyline HTTP MCP daemon (`http://127.0.0.1:7333/mcp`) into Grok and installs lifecycle hooks. When the daemon is reachable, native Grok file and shell tools are redirected to the richer skyline MCP tools with an **exact substitute** call in the deny reason. Fails open when the daemon is unreachable.
 
 This is the Grok sibling of `skyline-claude` (v1.5.x), `skyline-codex`, and `skyline-antigravity`.
 
@@ -24,7 +24,7 @@ This is the Grok sibling of `skyline-claude` (v1.5.x), `skyline-codex`, and `sky
 | Stop skylore deposit | **ported** |
 | SessionStart primer (abs-path / skylore / skyrift facts) | **not ported** — Grok SessionStart is observe-only (stdout ignored) |
 | SessionStart compact re-gate | **not ported** — same |
-| PreToolUse soft nudge on `skyline_grep` MCP | **not ported** — Grok PreToolUse only supports allow/deny JSON, not `additionalContext` |
+| PreToolUse soft nudge on `grep` MCP | **not ported** — Grok PreToolUse only supports allow/deny JSON, not `additionalContext` |
 | jobs-monitor | **not ported** — retired even on Claude (session-scoped redesign pending) |
 
 ## Install
@@ -35,7 +35,7 @@ grok plugin marketplace update skylence-plugins
 grok plugin install skyline-grok@skylence-be/skylence-plugins --trust
 ```
 
-After install (and `skyline daemon` running), the `skyline_*` tools appear and native operations are steered when the daemon is healthy. **Restart the Grok session** after install/update so hooks reload.
+After install (and `skyline daemon` running), the skyline tools appear and native operations are steered when the daemon is healthy. **Restart the Grok session** after install/update so hooks reload.
 
 ## Notes
 

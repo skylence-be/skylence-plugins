@@ -3,7 +3,7 @@ name: skyline-upgrade
 description: Update/upgrade skyline — installs the latest binary, restarts the daemon, and refreshes the plugin. Use when the user wants to update or upgrade skyline.
 ---
 
-Run these steps in order (via `skyline_run` / shell):
+Run these steps in order (via `run` / shell):
 
 1. Prefer the plugin script when present:
    ```
