@@ -248,7 +248,7 @@ test("#706 cat file => read({path})", () => {
   assert.equal(r.status, 0);
   assert.match(
     r.stderr,
-    /read\(\{path:"[^."][^"]*User\.php"\}\)/,
+    /read\(\{path:"(?:\/|[A-Za-z]:[\\\/])[^"]*User\.php"\}\)/,
     "#415 F2: cat maps to read with an ABSOLUTE path"
   );
   assert.ok(!r.stderr.includes('path:"src/'), "no relative path in cat remediation");
@@ -269,7 +269,10 @@ test("#706 Read inside tree => deny with read({path})", () => {
   );
   assert.equal(r.status, 0, "in-tree Read denied");
   assert.match(r.stderr, /read\(\{path:/);
-  assert.ok(r.stderr.includes(inside) || r.stderr.includes("read"), "path or tool present");
+  assert.ok(
+    r.stderr.includes(JSON.stringify(inside)),
+    "absolute path present in remediation (JSON-escaped form: fmtArgs uses JSON.stringify, which doubles backslashes on Windows)"
+  );
   assertHasToolSearch(r.stderr);
   assertNoDeadOneLiner(r.stderr);
 });
@@ -323,7 +326,7 @@ test("#706 second denial still carries substitute (idempotent, no dead one-liner
   assert.ok(!r2.stderr.includes("full guidance shown once"), "no legacy one-liner");
 });
 
-test("#706 ToolSearch select string unconditional on read deny", () => {
+test("#706 CORE tool menu lists git on every read deny", () => {
   const inside = path.join(__dirname, "skyline-enforce.js");
   const r = runHook(
     "read",
@@ -340,8 +343,8 @@ test("#706 ToolSearch select string unconditional on read deny", () => {
   assertHasToolSearch(r.stderr);
   assert.match(
     r.stderr,
-    /git/,
-    "CORE menu includes git"
+    /Prefer skyline MCP tools[^\n]*\bgit\b/,
+    "CORE tool menu lists git (bare post-v1.1.0 name); anchored to the menu sentence so a repo path containing \"git\" can't rescue a dropped menu"
   );
 });
 
@@ -459,7 +462,7 @@ test("#706 find -name => find({glob,path})", () => {
   assert.equal(r.status, 0);
   assert.match(
     r.stderr,
-    /find\(\{glob:"\*\.php", path:"[^."][^"]*"\}\)/,
+    /find\(\{glob:"\*\.php", path:"(?:\/|[A-Za-z]:[\\\/])[^"]*"\}\)/,
     "find -name keeps the glob param and renders an ABSOLUTE path (never relative '.')"
   );
   assert.ok(!r.stderr.includes('path:"."'), "#411 no relative '.' path in remediation");
@@ -476,7 +479,7 @@ test("#411 ls remediation renders an absolute path, never a relative '.'", () =>
   assert.ok(!r.stderr.includes('path:"."'), "no relative '.' path emitted");
   assert.match(
     r.stderr,
-    /tree\(\{path:"[^."][^"]*"\}\)/,
+    /tree\(\{path:"(?:\/|[A-Za-z]:[\\\/])[^"]*"\}\)/,
     "bare ls maps to tree with an ABSOLUTE path"
   );
 });
