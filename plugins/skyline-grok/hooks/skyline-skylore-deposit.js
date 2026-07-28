@@ -14,7 +14,7 @@ const os = require("os");
 const path = require("path");
 
 const DEPOSIT_PROMPT =
-  "Before finishing: any disconfirmed expectations or discovered quirks this session? Deposit them with skyline_lore_mark (kind=fact/decision, why= naming what you expected instead). Manifest contents don't count.";
+  "Before finishing: any disconfirmed expectations or discovered quirks this session? Deposit them with lore_mark (kind=fact/decision, why= naming what you expected instead). Manifest contents don't count.";
 
 function getSessionKey() {
   const id = process.env.GROK_SESSION_ID || process.env.CLAUDE_SESSION_ID;

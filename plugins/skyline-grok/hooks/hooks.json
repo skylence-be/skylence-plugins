@@ -1,5 +1,5 @@
 {
-  "description": "Skyline native tool shadowing for Grok: PreToolUse redirects read_file / search_replace / run_terminal_command / grep / list_dir to skyline_* MCP tools with exact substitutes (daemon fail-open). Stop deposits skylore once per session. Grok SessionStart cannot inject context (observe-only), so primer/regate/nudge soft-context from skyline-claude are not ported.",
+  "description": "Skyline native tool shadowing for Grok: PreToolUse redirects read_file / search_replace / run_terminal_command / grep / list_dir to skyline MCP tools with exact substitutes (daemon fail-open). Stop deposits skylore once per session. Grok SessionStart cannot inject context (observe-only), so primer/regate/nudge soft-context from skyline-claude are not ported.",
   "hooks": {
     "PreToolUse": [
       {

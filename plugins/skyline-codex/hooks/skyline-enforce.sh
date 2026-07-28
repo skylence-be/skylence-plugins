@@ -12,11 +12,11 @@ else
 fi
 
 case "$MODE" in
-  read) printf "use skyline_read, not Read.\n"; exit 2 ;;
-  edit) printf "use skyline_edit/skyline_create, not Edit/Write.\n"; exit 2 ;;
-  grep) printf "use skyline_grep/skyline_sgrep, not Grep.\n"; exit 2 ;;
-  glob) printf "use skyline_find/skyline_tree, not Glob.\n"; exit 2 ;;
-  bash) printf "use skyline_grep/skyline_sgrep, skyline_find/skyline_tree, skyline_git (read-only: status/diff/log/show/worktree-list), skyline_git_commit/skyline_git_remote/skyline_git_worktree for git writes, skyline_run/skyline_run_batch/skyline_run_job, skyline_test, skyline_conflicts -- not Bash.\n"; exit 2 ;;
+  read) printf "use read, not Read.\n"; exit 2 ;;
+  edit) printf "use edit/create, not Edit/Write.\n"; exit 2 ;;
+  grep) printf "use grep/sgrep, not Grep.\n"; exit 2 ;;
+  glob) printf "use find/tree, not Glob.\n"; exit 2 ;;
+  bash) printf "use grep/sgrep, find/tree, git (read-only: status/diff/log/show/worktree-list), git_commit/git_remote/git_worktree for git writes, run/run_batch/run_job, test, conflicts -- not Bash.\n"; exit 2 ;;
 esac
 
 exit 0
