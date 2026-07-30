@@ -123,7 +123,7 @@ function hasLoreBank() {
 }
 
 const LORE_CONTEXT =
-  "Skyline hosts the skylore memory bank. Call lore_recall BEFORE re-deriving any \"why is it done this way / did we already decide X / what broke last time\" question: it is ranked (BM25), deterministic, costs no LLM call, and every hit cites its provenance. Keep durable decisions and gotchas with lore_mark. Route by tier: lore_* for cross-project decisions, preferences and gotchas that live in no file; memory_* for per-project markdown notes; skybox/LSP for code structure, which you should never memorize because a parser re-derives it.";
+  "Skyline hosts the skylore memory bank. Call lore_recall BEFORE re-deriving any \"why is it done this way / did we already decide X / what broke last time\" question: it is ranked (BM25), deterministic, costs no LLM call, and every hit cites its provenance. Keep durable decisions and gotchas with lore_mark, but recall first: when a mark already covers the ground, lore_supersede it instead of adding a second one — a redundant bank buries the mark that is actually current. Route by tier: lore_* for cross-project decisions, preferences and gotchas that live in no file; memory_* for per-project markdown notes; skybox/LSP for code structure, which you should never memorize because a parser re-derives it.";
 
 // #411: front-load the one environment fact that silently breaks every skyline
 // call when missed. The daemon's cwd is /, so a relative path (a bare ".") is

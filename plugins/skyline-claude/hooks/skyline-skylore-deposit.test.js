@@ -47,9 +47,15 @@ test("fires exactly once per session: first Stop blocks, second allows", () => {
   assert.equal(r1.status, 0, "first fire exits 0 with JSON");
   const out = JSON.parse(r1.stdout.trim());
   assert.equal(out.decision, "block", "first Stop blocks");
-  assert.match(out.reason, /Deposit them with lore_mark/, "deposit prompt present");
+  assert.match(out.reason, /lore_mark/, "deposit prompt present");
   assert.match(out.reason, /kind=fact\/decision/, "names the mark kinds");
-  assert.match(out.reason, /Manifest contents don't count/, "excludes manifest facts");
+  // The four load-bearing clauses of the 2026-07-30 rewrite. Each one exists
+  // because the bank audit found the old prompt produced the opposite: only
+  // deposits, never recall, never a supersede, and PR-scoped noise.
+  assert.match(out.reason, /lore_recall it FIRST/, "sends the agent to recall before depositing");
+  assert.match(out.reason, /lore_supersede/, "names supersede as the duplicate-avoiding move");
+  assert.match(out.reason, /nothing durable/, "empty deposit is an explicit acceptable answer");
+  assert.match(out.reason, /one PR, branch, or todo/, "excludes PR/branch/todo-scoped detail");
 
   assert.equal(r2.status, 0, "second fire exits 0");
   assert.equal(r2.stdout.trim(), "", "second Stop in the same session does not block");
