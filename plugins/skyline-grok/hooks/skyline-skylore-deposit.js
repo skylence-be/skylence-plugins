@@ -10,14 +10,15 @@
  *
  * PROMPT WORDING (revised 2026-07-30 after an audit of the 171-mark bank): the
  * original text asked only "did you learn anything?", and a prompt that only
- * asks for deposits only gets deposits. The bank came out ~25% redundant (14
- * marks for one env-inheritance fact, 9 for one composer quirk) with 1 of 171
- * marks ever superseded, because nothing pushed back toward recall-first or
- * toward correcting an existing mark. So the prompt now (a) makes "nothing
- * durable" an explicit acceptable answer, (b) sends the agent to lore_recall
- * before depositing, (c) names lore_supersede as the move when a mark already
- * covers the ground, and (d) rules out PR/branch/todo-scoped detail, which is
- * the other thing the audit found clogging the bank.
+ * asks for deposits only gets deposits — the bank came out ~25% redundant with
+ * 1 of 171 marks ever superseded. The corrective rules (recall first, supersede
+ * over re-mark, scope it, exclude PR-scoped detail) do NOT live here: a blocked
+ * Stop reason is the worst place to put a procedure, since it lands as a wall
+ * of text exactly when the agent wants to be finished, and it would have to be
+ * kept in sync across the claude and grok twins. They live in
+ * skills/skylore-deposit-skill/SKILL.md, which this prompt points at. What
+ * stays inline is only what must survive the skill being unavailable: the
+ * question itself, and the fact that "nothing durable" is a correct answer.
  * Kept byte-identical to the skyline-claude twin.
  */
 
@@ -26,7 +27,7 @@ const os = require("os");
 const path = require("path");
 
 const DEPOSIT_PROMPT =
-  "Stop check: did anything this session contradict what you expected, or would it cost the next session real time to re-derive? If not, say \"nothing durable\" and stop — an empty deposit is a fine answer. If yes, lore_recall it FIRST: when a mark already covers the ground, lore_supersede that one rather than depositing a near-duplicate. Otherwise lore_mark one or two, kind=fact/decision, why= the expectation it broke or the alternative it beat, repo= unless the fact is genuinely machine-wide. Skip what a file, manifest, or parser already states, and skip anything scoped to one PR, branch, or todo — that belongs in the PR or the todo.";
+  "Stop check: anything this session that would cost the next one real time to re-derive? \"Nothing durable\" is a correct answer — say it and stop. If there IS something, invoke skylore-deposit-skill and follow it: it covers recall-before-mark, supersede-instead-of-duplicate, scoping, and what does not belong in the bank.";
 
 function getSessionKey() {
   const id = process.env.GROK_SESSION_ID || process.env.CLAUDE_SESSION_ID;
