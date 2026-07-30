@@ -88,7 +88,7 @@ test("daemon up: export denies", () => {
   assert.equal(j.decision, "deny");
 });
 
-test("daemon up: skyline_run argv secrets denies", () => {
+test("daemon up: skyline run argv secrets denies", () => {
   const res = run(
     { tool_input: { argv: ["skycastle", "secrets", "list"] } },
     UP_PORT

@@ -1,5 +1,5 @@
 {
-  "description": "Skycastle CLI→MCP steering for Grok: PreToolUse on run_terminal_command/Bash and skyline_run. Structural argv + command-position detection (Claude parity). Only secrets/export; fail-open when daemon :8210 is down.",
+  "description": "Skycastle CLI→MCP steering for Grok: PreToolUse on run_terminal_command/Bash and skyline's run. Structural argv + command-position detection (Claude parity). Only secrets/export; fail-open when daemon :8210 is down.",
   "hooks": {
     "PreToolUse": [
       {
@@ -13,7 +13,7 @@
         ]
       },
       {
-        "matcher": "skyline_run|.*skyline_run$",
+        "matcher": "^run(_batch|_job)?$|.*__run(_batch|_job)?$",
         "hooks": [
           {
             "type": "command",

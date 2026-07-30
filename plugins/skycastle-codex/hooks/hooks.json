@@ -12,7 +12,7 @@
         ]
       },
       {
-        "matcher": "mcp__.*__skyline_run$",
+        "matcher": "mcp__.*__run(_batch|_job)?$",
         "hooks": [
           {
             "type": "command",

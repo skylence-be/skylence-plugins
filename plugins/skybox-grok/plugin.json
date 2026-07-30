@@ -1,6 +1,6 @@
 {
   "name": "skybox-grok",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Wires the skybox code-knowledge-graph MCP daemon (port 7070) into Grok. Read-only graph tools + PreToolUse structural steering for skybox CLI (index/query/search/status/list/affected/augment) and skyline_run argv to MCP tools when daemon is up (fail-open). Includes update-plugin/upgrade/uninstall/operate skills.",
   "author": {
     "name": "Skylence",

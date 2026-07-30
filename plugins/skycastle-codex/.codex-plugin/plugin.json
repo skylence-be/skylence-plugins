@@ -1,6 +1,6 @@
 {
   "name": "skycastle-codex",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Wires the skycastle secrets-manager MCP daemon into Codex: one HTTP MCP server on port 8210 exposing secret CRUD (get/set/list/delete, versions, tags), KMS, certificates, SSH, secret-scanning, PAM, AI, and token tools, plus an operate skill and a PreToolUse hook that redirects `skycastle secrets`/`export` CLI subcommands to the richer MCP tools.",
   "author": {
     "name": "Skylence",

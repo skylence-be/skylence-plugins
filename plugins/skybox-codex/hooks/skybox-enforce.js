@@ -4,9 +4,11 @@
 // the indexed-graph MCP tools (index_repo, query, impact, ...). This redirects
 // them.
 //
-// Fires on BOTH native `Bash` and `skyline_run` (when skyline-claude is also
-// installed, native Bash is already redirected to skyline_run, so the skybox CLI
-// would arrive via skyline_run's argv).
+// Fires on BOTH native `Bash` and skyline's `run`/`run_batch`/`run_job` (when
+// skyline-claude is also installed, native Bash is already redirected to
+// skyline's run, so the skybox CLI would arrive in its argv). skyline v1.1.0
+// dropped the `skyline_` prefix and split the batch/background modes into
+// their own tools, so the matcher must cover all three names.
 //
 // Detection is precise to avoid false positives:
 //   - `argv` arrays are inspected STRUCTURALLY: basename(argv[0]) must be skybox
@@ -87,12 +89,12 @@ function detect(ti) {
     if (s) return s;
   }
   if (Array.isArray(ti.argv)) {
-    const s = detectFromArgv(ti.argv); // skyline_run
+    const s = detectFromArgv(ti.argv); // skyline run / run_job
     if (s) return s;
   }
   if (Array.isArray(ti.argv_list)) {
     for (const a of ti.argv_list) {
-      const s = detectFromArgv(a); // skyline_run batch
+      const s = detectFromArgv(a); // skyline run_batch
       if (s) return s;
     }
   }

@@ -75,7 +75,7 @@ test("daemon up: skybox index denies with index_repo reason", () => {
   assert.match(j.reason, /index_repo/);
 });
 
-test("daemon up: skyline_run argv skybox query denies", () => {
+test("daemon up: skyline run argv skybox query denies", () => {
   const res = run(
     { tool_input: { argv: ["skybox", "query", "User"] } },
     UP_PORT

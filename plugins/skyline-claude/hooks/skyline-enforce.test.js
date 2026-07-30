@@ -153,6 +153,20 @@ function assertNoDeadOneLiner(stderr) {
 
 function assertHasToolSearch(stderr) {
   assert.match(stderr, /ToolSearch\("select:mcp__skyline__/, "ToolSearch select present");
+  // Both wire spellings must be offered: `select:` is exact-name matching, so
+  // a single hardcoded prefix resolves ZERO tools on a client that namespaces
+  // the server the other way (skylence-plugins#41). Asserting only one
+  // spelling is what let that ship.
+  assert.match(
+    stderr,
+    /select:[^"]*mcp__plugin_skyline-claude_skyline__read/,
+    "plugin-namespaced spelling present"
+  );
+  assert.match(
+    stderr,
+    /select:[^"]*mcp__skyline__read/,
+    "bare-server spelling present"
+  );
 }
 
 // --- retained #549 behaviors ----------------------------------------------

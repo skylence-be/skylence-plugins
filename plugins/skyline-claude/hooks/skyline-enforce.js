@@ -45,26 +45,49 @@ function hasComposer(cwd) {
   }
 }
 
+// The wire prefix a plugin's MCP server gets is NOT stable: Claude Code has
+// namespaced this server as both `mcp__plugin_skyline-claude_skyline__*` and
+// `mcp__skyline__*` on different versions (skylence-plugins#39 recorded the
+// flip). `select:` is EXACT-name matching, so a hardcoded prefix that misses
+// resolves zero tools and the refusal hands the agent a dead recovery path
+// (field case 2026-07-30, skylence-plugins#41: the hint returned "No matching
+// deferred tools found" on a plugin-namespaced box). Emit every name under
+// both spellings — ToolSearch ignores names it cannot resolve, so the superset
+// costs nothing and survives the next flip of the prefix.
+const WIRE_PREFIXES = ["mcp__skyline__", "mcp__plugin_skyline-claude_skyline__"];
+
 // The CORE menu the switch instruction points agents at. The three semantic
 // navigators (definition/references/symbols) are language-generic and always
 // listed (skylence-plugins#15 on-ramp). symbol_card is PHP-oriented.
+const CORE_TOOLS = [
+  "read",
+  "edit",
+  "create",
+  "grep",
+  "tree",
+  "find",
+  "git",
+  "run",
+  "definition",
+  "references",
+  "symbols",
+];
+
 function buildCore(composer) {
-  return (
-    "select:mcp__skyline__read," +
-    "mcp__skyline__edit," +
-    "mcp__skyline__create," +
-    "mcp__skyline__grep," +
-    "mcp__skyline__tree," +
-    "mcp__skyline__find," +
-    "mcp__skyline__git," +
-    "mcp__skyline__run," +
-    "mcp__skyline__definition," +
-    "mcp__skyline__references," +
-    "mcp__skyline__symbols" +
-    (composer && !acuityMcpRoutePinnedOff()
-      ? ",mcp__skyline__symbol_card"
-      : "")
-  );
+  const tools = CORE_TOOLS.slice();
+  if (composer && !acuityMcpRoutePinnedOff()) {
+    tools.push("symbol_card");
+  }
+  // Interleaved per tool, not grouped per prefix: if a client caps how many
+  // results it returns, the agent still gets a spread of the menu rather than
+  // every spelling of `read`.
+  const names = [];
+  for (const tool of tools) {
+    for (const prefix of WIRE_PREFIXES) {
+      names.push(prefix + tool);
+    }
+  }
+  return "select:" + names.join(",");
 }
 
 // The symbol_card tip only holds when PHP is served by the acuity MCP route:

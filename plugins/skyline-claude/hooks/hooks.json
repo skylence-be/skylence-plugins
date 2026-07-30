@@ -91,7 +91,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "mcp__.*(git_commit|run)$|^Bash$",
+        "matcher": "mcp__.*(git_commit|run(_batch|_job)?)$|^Bash$",
         "hooks": [
           {
             "type": "command",

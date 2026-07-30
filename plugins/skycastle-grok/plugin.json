@@ -1,6 +1,6 @@
 {
   "name": "skycastle-grok",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Wires the skycastle secrets-manager MCP daemon (port 8210) into Grok. Secret tools + PreToolUse structural steering for skycastle secrets/export (and skyline_run) when daemon is up (fail-open). Includes skycastle-status, update-plugin, upgrade, operate, uninstall.",
   "author": {
     "name": "Skylence",
