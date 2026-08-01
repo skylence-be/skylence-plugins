@@ -62,6 +62,7 @@ const SESSIONS = [
   "sess-lifecycle-down",
   "sess-env-inspect",
   "sess-env-narrow-exec",
+  "sess-env-narrow-flag",
   "sess-env-narrow-grep",
   "sess-env-down",
 ];
@@ -704,6 +705,27 @@ test("self-env-inspection exemption is narrow: env with a real exec target still
   assertDeniedStdout(r);
   assert.ok(!r.stderr.includes("environment self-inspection"), "must not be misclassified as a self-read");
 });
+
+// skylore mark 236: env's OWN flags (-i, -u NAME, --) were never walked
+// before the naive exec-target check, so each of these three real-world
+// program launches misclassified as a bare self-read and slipped past the
+// redirect. Fixed by mirroring DAEMON_VALUE_FLAGS' flag-walking.
+for (const [label, command] of [
+  ["-i ignore-environment flag", "env -i whoami | tee /tmp/skyline-env-flag-i-recovery.log"],
+  ["-u NAME value-taking flag", "env -u FOO realcmd | tee /tmp/skyline-env-flag-u-recovery.log"],
+  ["-- end-of-options marker", "env -- realcmd | tee /tmp/skyline-env-flag-dashdash-recovery.log"],
+]) {
+  test(`self-env-inspection exemption is narrow: env ${label} with an exec target still redirects`, () => {
+    assert.ok(/[|><]/.test(command), "case must defeat the size threshold, else it proves nothing");
+    const r = runHook(
+      "bash",
+      { GROK_SESSION_ID: "sess-env-narrow-flag" },
+      { tool_input: { command } }
+    );
+    assertDeniedStdout(r);
+    assert.ok(!r.stderr.includes("environment self-inspection"), "must not be misclassified as a self-read");
+  });
+}
 
 test("self-env-inspection exemption is narrow: grepping for the word env still redirects", () => {
   // A regex over the raw command would wrongly exempt this; tokenizing does not.
