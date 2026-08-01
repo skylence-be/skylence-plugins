@@ -173,6 +173,59 @@ function isInsideTree(absPath, root) {
   return a === r || a.startsWith(r + path.sep);
 }
 
+// A workspace copy (skyline_workspace_create / skyrift clonefile, or a git
+// worktree) lives as a SIBLING of the repo (`<repo>-workspaces/<name>`), so
+// the root-prefix test above correctly fails on it — but it is still a live
+// copy of the project, and skyline's tools take absolute paths, so the
+// skyline-first mandate follows the FILE, not the session cwd. Walk up from
+// the target for a `.git` or `.skyrift-workspace` marker: found means the
+// op lands in a code tree and gets steered like any in-repo op; nothing
+// found means a genuinely non-code destination, which passes through.
+// (Field report 2026-08-01: two Write calls landed unsteered in a skyrift
+// probe copy while every Bash call in the same session was steered — the
+// carve-out built for ~/.claude memory files was leaking onto code.)
+function isInsideAnyCodeTree(absPath) {
+  try {
+    let d = canonical(path.resolve(absPath));
+    try {
+      if (!fs.statSync(d).isDirectory()) d = path.dirname(d);
+    } catch (_e) {
+      d = path.dirname(d);
+    }
+    for (let i = 0; i < 64; i++) {
+      if (
+        fs.existsSync(path.join(d, ".git")) ||
+        fs.existsSync(path.join(d, ".skyrift-workspace"))
+      ) {
+        return true;
+      }
+      const parent = path.dirname(d);
+      if (parent === d) break;
+      d = parent;
+    }
+  } catch (_e) {
+    /* fall through: unknown => not a code tree => pass-through as before */
+  }
+  return false;
+}
+
+// ~/.claude stays exempt unconditionally (#706: memory-file writes are out
+// of scope), even if someone git-versions their config dir.
+function isClaudeConfigPath(absPath) {
+  try {
+    const cfg = canonical(path.join(os.homedir(), ".claude"));
+    const a = canonical(path.resolve(absPath));
+    if (process.platform === "win32") {
+      const al = a.toLowerCase();
+      const cl = cfg.toLowerCase();
+      return al === cl || al.startsWith(cl + path.sep);
+    }
+    return a === cfg || a.startsWith(cfg + path.sep);
+  } catch (_e) {
+    return false;
+  }
+}
+
 // --- substitute formatting -------------------------------------------------
 function fmtArgs(args) {
   if (!args || typeof args !== "object") return "";
@@ -627,14 +680,19 @@ async function main() {
   const composer = hasComposer(cwd) || hasComposer(root);
   const toolName = toolNameFromInput(input, ti);
 
-  // Out-of-tree pass-through for native file ops (Read/Edit/Write).
-  // Blocking a memory-file write under ~/.claude is out of scope (#706).
+  // Out-of-tree handling for native file ops (Read/Edit/Write): ~/.claude
+  // always passes (#706), and any other out-of-root path passes ONLY when it
+  // is not inside some code tree — a workspace copy or worktree sibling is
+  // code and gets steered exactly like an in-repo path (see
+  // isInsideAnyCodeTree; field report 2026-08-01).
   if (MODE === "read" || MODE === "edit") {
     const fp = filePathFromInput(MODE, ti);
     if (fp) {
       const abs = resolveAbs(fp, cwd);
       if (abs && !isInsideTree(abs, root)) {
-        process.exit(0);
+        if (isClaudeConfigPath(abs) || !isInsideAnyCodeTree(abs)) {
+          process.exit(0);
+        }
       }
     }
   }

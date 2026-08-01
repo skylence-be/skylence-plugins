@@ -297,6 +297,78 @@ test("#706 Write outside tree (e.g. ~/.claude) => pass through exit 0", () => {
   assert.equal(r.stderr, "", "no deny noise for out-of-tree");
 });
 
+// --- workspace-copy containment (field report 2026-08-01) ------------------
+// A skyrift/skyline workspace copy is a SIBLING of the repo
+// (`<repo>-workspaces/<name>`), so it fails the root-prefix test — but it is
+// code, and it used to slip through the ~/.claude carve-out unsteered while
+// every Bash call in the same session was steered. The skyline-first mandate
+// follows the FILE, not the session cwd.
+
+test("Write into a sibling workspace copy (.skyrift-workspace marker) => deny", () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "enforce-wscopy-"));
+  try {
+    const probe = path.join(base, "repo-workspaces", "probe");
+    fs.mkdirSync(path.join(probe, "src"), { recursive: true });
+    fs.writeFileSync(path.join(probe, ".skyrift-workspace"), "");
+    const target = path.join(probe, "src", "x.php");
+    const r = runHook(
+      "edit",
+      { GROK_SESSION_ID: "sess-wscopy", CLAUDE_PROJECT_DIR: path.resolve(__dirname, "../../..") },
+      {
+        cwd: path.resolve(__dirname, "../../.."),
+        tool_name: "Write",
+        tool_input: { file_path: target, content: "x" },
+      }
+    );
+    assertDeniedStdout(r);
+    assert.match(r.stderr, /create\(\{path:/);
+    assertHasToolSearch(r.stderr);
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test("Write into some other git tree => deny (mandate follows the file)", () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "enforce-othergit-"));
+  try {
+    fs.mkdirSync(path.join(base, ".git"), { recursive: true });
+    const target = path.join(base, "y.rs");
+    const r = runHook(
+      "edit",
+      { GROK_SESSION_ID: "sess-othergit", CLAUDE_PROJECT_DIR: path.resolve(__dirname, "../../..") },
+      {
+        cwd: path.resolve(__dirname, "../../.."),
+        tool_name: "Write",
+        tool_input: { file_path: target, content: "x" },
+      }
+    );
+    assertDeniedStdout(r);
+    assert.match(r.stderr, /create\(\{path:/);
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test("Write to a non-repo scratch path still passes through", () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "enforce-scratch-"));
+  try {
+    const target = path.join(base, "note.txt");
+    const r = runHook(
+      "edit",
+      { GROK_SESSION_ID: "sess-scratch", CLAUDE_PROJECT_DIR: path.resolve(__dirname, "../../..") },
+      {
+        cwd: path.resolve(__dirname, "../../.."),
+        tool_name: "Write",
+        tool_input: { file_path: target, content: "x" },
+      }
+    );
+    assert.equal(r.status, 0, "genuinely non-code destination must still pass");
+    assert.equal(r.stderr, "", "no deny noise for scratch");
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});
+
 test("#706 Write inside tree => deny with create({path})", () => {
   const inside = path.join(__dirname, "NEWFILE-enforce-test.txt");
   const r = runHook(
