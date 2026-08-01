@@ -60,6 +60,10 @@ const SESSIONS = [
   "sess-lifecycle-narrow",
   "sess-lifecycle-grep",
   "sess-lifecycle-down",
+  "sess-env-inspect",
+  "sess-env-narrow-exec",
+  "sess-env-narrow-grep",
+  "sess-env-down",
 ];
 
 function cleanMarkers() {
@@ -655,5 +659,76 @@ test("daemon-down passthrough holds for a lifecycle command too", () => {
     }
   );
   assert.equal(r.status, 0, "never block recovery");
+  assert.ok(!r.stderr.includes("run("), "no self-referential advice");
+});
+
+test("self-env-inspection passes through: bare env piped to a filter", () => {
+  // The exact live-bug shape (field case 2026-08-01, first found on the
+  // claude twin): a pipe defeats the size threshold, so only the dedicated
+  // pass-through saves this from `run()`, which would silently answer with
+  // the DAEMON's environment instead.
+  const command = "env | grep -c HERDR_";
+  assert.ok(/[|><]/.test(command), "case must defeat the size threshold, else it proves nothing");
+  const r = runHook(
+    "bash",
+    { GROK_SESSION_ID: "sess-env-inspect" },
+    { tool_input: { command } }
+  );
+  assert.equal(r.status, 0, `must not block; stderr was: ${r.stderr}`);
+  assert.equal(r.stdout, "", "no deny JSON: this is an allow, not a denial");
+  assert.ok(!r.stderr.includes("run("), "must never advise self-inspection through the daemon-routed run");
+  assert.match(r.stderr, /environment self-inspection/, "explicit pass-through notice");
+});
+
+test("self-env-inspection passes through: printenv of a var, piped", () => {
+  const command = "printenv HERDR_ENV | cat";
+  assert.ok(/[|><]/.test(command), "case must defeat the size threshold, else it proves nothing");
+  const r = runHook(
+    "bash",
+    { GROK_SESSION_ID: "sess-env-inspect" },
+    { tool_input: { command } }
+  );
+  assert.equal(r.status, 0, `must not block; stderr was: ${r.stderr}`);
+  assert.equal(r.stdout, "", "no deny JSON: this is an allow, not a denial");
+  assert.match(r.stderr, /environment self-inspection/, "explicit pass-through notice");
+});
+
+test("self-env-inspection exemption is narrow: env with a real exec target still redirects", () => {
+  const command = "env FOO=bar realcmd --flag | tee /tmp/skyline-env-exec-recovery.log";
+  assert.ok(/[|><]/.test(command), "case must defeat the size threshold, else it proves nothing");
+  const r = runHook(
+    "bash",
+    { GROK_SESSION_ID: "sess-env-narrow-exec" },
+    { tool_input: { command } }
+  );
+  assertDeniedStdout(r);
+  assert.ok(!r.stderr.includes("environment self-inspection"), "must not be misclassified as a self-read");
+});
+
+test("self-env-inspection exemption is narrow: grepping for the word env still redirects", () => {
+  // A regex over the raw command would wrongly exempt this; tokenizing does not.
+  const r = runHook(
+    "bash",
+    { GROK_SESSION_ID: "sess-env-narrow-grep" },
+    {
+      tool_input: {
+        command: 'grep -rn "printenv HERDR_ENV" /Users/jv/Code/docs --include=*.md | head -5',
+      },
+    }
+  );
+  assertDeniedStdout(r);
+  assert.match(r.stderr, /grep\(\{pattern:"printenv HERDR_ENV"\}\)/);
+});
+
+test("self-env-inspection passes through even with the daemon down", () => {
+  // Mirrors the daemon-lifecycle parity test: this exemption fires before the
+  // daemon-ready probe, so it must never depend on the daemon being up.
+  const r = runHook(
+    "bash",
+    { SKYLINE_DAEMON_PORT: "19999", GROK_SESSION_ID: "sess-env-down" },
+    { tool_input: { command: "env | grep -c HERDR_" } }
+  );
+  assert.equal(r.status, 0, "never block a self-read on daemon-down either");
+  assert.equal(r.stdout, "", "no deny JSON: this is an allow, not a denial");
   assert.ok(!r.stderr.includes("run("), "no self-referential advice");
 });
