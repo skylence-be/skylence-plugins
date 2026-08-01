@@ -2,7 +2,6 @@
 // Cross-platform (Windows/macOS/Linux) port of skyline-enforce.sh — invoked as
 // `node skyline-enforce.js <mode>` so it needs no shell and no bash on PATH.
 //
-// Hardening lineage:
 //   binary-skyline#549 — daemon-ready guard, bash size threshold
 //   binary-skyline#706 / field #9 — EVERY denial carries the exact substitute
 //     invocation (tool + mapped args), idempotently; no "shown once per session"
@@ -10,7 +9,15 @@
 //     indexed repo tree (e.g. Write under ~/.claude) pass through. Field #11
 //     plugin-side: long orient / symbol-hunt reminder collapses to one short
 //     line after first occurrence per session; the substitute line never drops.
-//
+//   skylence-plugins field case 2026-08-01 — SELF-ENV-INSPECTION pass-through:
+//     `env`/`printenv` reads the CALLING session's own environment; `run`
+//     executes as a child of the persistent skyline daemon (a detached
+//     background service), which returns the DAEMON's environment instead —
+//     silently WRONG, not merely redirected. Measured live: an agent asked to
+//     confirm its own HERDR_* vars via `env | grep` got zero matches through
+//     `run` while `ps eww` on the same PID showed five. Mirrors the daemon
+//     lifecycle pass-through below: some commands cannot be delegated to the
+//     daemon without changing their meaning.
 // Modes: read | edit | grep | glob | bash (unknown => exit 0)
 
 const http = require("http");
@@ -548,6 +555,38 @@ function isDaemonLifecycle(command, depth = 0) {
   return false;
 }
 
+// Self-environment inspection pass-through (see hardening lineage above).
+// `env` / `printenv` with no following exec target reads THIS process's own
+// environment; routing it through `run` silently answers with the skyline
+// daemon's environment instead. `env FOO=bar realcmd` (an exec target
+// follows) is a genuine program launch and still routes normally — only the
+// bare self-read shape is exempted.
+function isSelfEnvInspection(command) {
+  const raw = String(command || "").trim();
+  if (!raw) return false;
+  for (const stage of raw.split(/(?:&&|\|\||[|;])/)) {
+    const tokens = shellTokens(stage.trim());
+    if (tokens.length === 0) continue;
+    let i = 0;
+    while (i < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[i])) i++;
+    if (i >= tokens.length) continue;
+    const prog = path.basename(unquote(tokens[i]));
+    if (prog !== "env" && prog !== "printenv") continue;
+    const rest = tokens.slice(i + 1);
+    if (prog === "env") {
+      // Skip NAME=VALUE assignments; the first remaining non-flag token (if
+      // any) is the program env would exec, not a self-read.
+      let j = 0;
+      while (j < rest.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(rest[j])) j++;
+      if (j < rest.length && !rest[j].startsWith("-")) continue; // real exec target
+    }
+    // printenv NAME... still reads THIS process's own environment (it never
+    // takes an exec target), and a bare env/printenv obviously does too.
+    return true;
+  }
+  return false;
+}
+
 function readToolInput() {
   return new Promise((resolve) => {
     let buf = "";
@@ -642,6 +681,17 @@ async function main() {
     process.stderr.write(
       "skyline daemon lifecycle command; allowing native tool " +
         "(run cannot restart its own transport)\n"
+    );
+    process.exit(0);
+  }
+
+  // Self-environment inspection pass-through: a daemon-routed `run` cannot
+  // answer "what is in MY environment" correctly (it runs under the
+  // daemon's own environment, not this session's pane).
+  if (MODE === "bash" && isSelfEnvInspection(command)) {
+    process.stderr.write(
+      "environment self-inspection command; allowing native tool " +
+        "(run executes under the daemon's environment, not this session's)\n"
     );
     process.exit(0);
   }
