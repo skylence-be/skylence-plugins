@@ -542,11 +542,36 @@ function isSelfEnvInspection(command) {
     if (prog !== "env" && prog !== "printenv") continue;
     const rest = tokens.slice(i + 1);
     if (prog === "env") {
-      // Skip NAME=VALUE assignments; the first remaining non-flag token (if
-      // any) is the program env would exec, not a self-read.
+      // Walk env's OWN flags (mirrors DAEMON_VALUE_FLAGS' flag-walking)
+      // before deciding whether a real exec target remains. The naive
+      // "skip NAME=VALUE, then check the next token" version misclassified
+      // `env -i whoami` / `env -u FOO realcmd` / `env -- realcmd` as
+      // self-reads: `-i`/`-u`/`--` all start with `-`, so the first token
+      // after them looked like "not an exec target" when it never even got
+      // examined (skylore mark 236, found by a live reviewer smoketest
+      // executing the function directly, not just reading the diff).
+      const ENV_VALUE_FLAGS = /^(-u|--unset|-C|--chdir|-S|--split-string)$/;
       let j = 0;
-      while (j < rest.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(rest[j])) j++;
-      if (j < rest.length && !rest[j].startsWith("-")) continue; // real exec target
+      let sawDashDash = false;
+      while (j < rest.length) {
+        const t = rest[j];
+        if (!sawDashDash && t === "--") {
+          sawDashDash = true;
+          j++;
+          continue;
+        }
+        if (!sawDashDash && /^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) {
+          j++;
+          continue;
+        }
+        if (!sawDashDash && t.startsWith("-") && t !== "-") {
+          j++;
+          if (ENV_VALUE_FLAGS.test(t)) j++; // consume the flag's value too
+          continue;
+        }
+        break; // first token that is neither a flag, an assignment, nor `--`
+      }
+      if (j < rest.length) continue; // a real exec target remains: route normally
     }
     // printenv NAME... still reads THIS process's own environment (it never
     // takes an exec target), and a bare env/printenv obviously does too.
